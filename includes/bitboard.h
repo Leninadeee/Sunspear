@@ -46,6 +46,13 @@ static inline int lsb(bb64 bb)
     return __builtin_ctzll(bb);
 }
 
+static inline int pop_lsb(bb64 * bb)
+{
+    int i = lsb(*bb);
+    *bb &= *bb - 1;
+    return i;
+}
+
 /* Converts an index to its tile string representation */
 static inline void idxtosq(int sq, char buf[3]) {
     buf[0] = 'a' + (sq & 7);

@@ -52,7 +52,7 @@ typedef struct
     bb64 pcbb[12];              /* Occupancy bitboards for pieces */
     bb64 white, black, both;    /* Occupancy bitboards for colors */
     int  side;                  /* Color to move */
-    int  epsq;                  /* En passants square*/
+    int  enpassant;             /* En passants square*/
     uint8_t castling;           /* Castling rights bitmask */
     uint8_t halfmove;           /* 50 move counter */
     uint16_t fullmove;          /* Move number */

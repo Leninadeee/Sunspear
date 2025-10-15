@@ -1,6 +1,6 @@
 #include <string.h>
 
-#include "attacks.h"asdfasdf
+#include "attacks.h"
 #include "bitboard.h"
 
 bb64 bmask[64];     /* All bishop attack masks  */

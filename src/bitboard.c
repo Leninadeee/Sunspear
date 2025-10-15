@@ -60,8 +60,8 @@ void print_board(const Position *pos)
     printf("      Side: %s\n", pos->side == WHITE ? "white" : "black");
 
     char ep[3];
-    if (pos->epsq >= 0) { idxtosq(pos->epsq, ep); }
-    printf(" Enpassant: %s\n", pos->epsq >= 0 ? ep : "N/A");
+    if (pos->enpassant >= 0) { idxtosq(pos->enpassant, ep); }
+    printf(" Enpassant: %s\n", pos->enpassant >= 0 ? ep : "N/A");
 
     printf("  Castling: %c%c%c%c\n\n",
            (pos->castling & CASTLE_WK) ? 'K' : '-',
@@ -74,7 +74,7 @@ void reset_board(Position * pos)
 {
     memset(pos, 0, sizeof(Position));
     pos->side = 0;
-    pos->epsq = none;
+    pos->enpassant = none;
     pos->castling = 0;
     pos->halfmove = 0;
     pos->fullmove = 0;
@@ -159,7 +159,7 @@ bool parse_fen(const char *fen, Position *pos)
     /* Set en passant square */
     if (*ptr == '-')
     {
-        pos->epsq = -1;
+        pos->enpassant = -1;
         ptr++;
     }
     else
@@ -167,7 +167,7 @@ bool parse_fen(const char *fen, Position *pos)
         if (!ptr[0] || !ptr[1]) return false;
         int sq = sqtoidx(ptr);
         if (sq < 0) return false;
-        pos->epsq = sq;
+        pos->enpassant = sq;
         ptr += 2;
     }
 
