@@ -214,11 +214,67 @@ static inline void gen_knight_moves(const Position *P, Color c)
 
 }
 
+static inline void gen_bishop_moves(const Position *P, Color c)
+{   
+    Piece pc   = (c == WHITE) ? W_BISHOP : B_BISHOP;
+    bb64  us   = (c == WHITE) ? P->white : P->black;
+    bb64  them = (c == WHITE) ? P->black : P->white;
+    bb64  occ  = P->both;
+    bb64  bb   = P->pcbb[pc];
+
+    for (bb64 x = bb; x;)
+    {
+        int src = poplsb(&x);
+        bb64 mask = bishop_attacks_pext(src, occ) & ~us;
+        emit_from_mask(src, mask, pc, occ, them);
+    }
+
+}
+
+static inline void gen_rook_moves(const Position *P, Color c)
+{   
+    Piece pc   = (c == WHITE) ? W_ROOK : B_ROOK;
+    bb64  us   = (c == WHITE) ? P->white : P->black;
+    bb64  them = (c == WHITE) ? P->black : P->white;
+    bb64  occ  = P->both;
+    bb64  rr   = P->pcbb[pc];
+
+    for (bb64 x = rr; x;)
+    {
+        int src = poplsb(&x);
+        bb64 mask = rook_attacks_pext(src, occ) & ~us;
+        emit_from_mask(src, mask, pc, occ, them);
+    }
+
+}
+
+static inline void gen_queen_moves(const Position *P, Color c)
+{   
+    Piece pc   = (c == WHITE) ? W_QUEEN : B_QUEEN;
+    bb64  us   = (c == WHITE) ? P->white : P->black;
+    bb64  them = (c == WHITE) ? P->black : P->white;
+    bb64  occ  = P->both;
+    bb64  qq   = P->pcbb[pc];
+
+    for (bb64 x = qq; x;)
+    {
+        int src = poplsb(&x);
+        bb64 mask = queen_attacks_pext(src, occ) & ~us;
+        emit_from_mask(src, mask, pc, occ, them);
+    }
+
+}
+
 void gen_all(const Position* P)
 {
     const Color side = (Color)P->side;
 
+    gen_pawn_pushes(P, side);
+    gen_pawn_captures(P, side);
+    gen_king_moves(P, side);
+    gen_castles(P, side);
     gen_knight_moves(P, side);
-    gen_knight_moves(P, side^1);
-
+    gen_bishop_moves(P, side);
+    gen_rook_moves(P, side);
+    gen_queen_moves(P, side);
 }
