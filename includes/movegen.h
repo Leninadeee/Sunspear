@@ -17,7 +17,7 @@
 
 extern MoveList mvs;
 
-extern void gen_all(const Position *);
+extern void gen_all(const Position *, MoveList *);
 extern void add_move(MoveList *, uint32_t);
 extern void print_moves(const MoveList *);
 

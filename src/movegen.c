@@ -8,61 +8,36 @@ const char sym[] = {'P','N','B','R','Q','K','p','n','b','r','q','k'};
 
 MoveList mvs;
 
-static inline void emit_quiet_move(Piece pc, int src, int dst)
+static inline void emit_move(MoveList *M, int src, int dst, Piece pc,
+                             Piece promo, bool cap, bool dbl, bool enp,
+                             bool cstl)
 {
-    char s1[3], s2[3]; idxtosq(src, s1); idxtosq(dst, s2);
-    printf("%c  %s%s\n", sym[pc], s1, s2);
+    add_move(M, encode(src, dst, pc, promo, cap, dbl, enp, cstl));
 }
 
-static inline void emit_capture_move(Piece pc, int src, int dst)
-{
-    char s1[3], s2[3]; idxtosq(src,s1); idxtosq(dst,s2);
-    printf("%cx %s%s\n", sym[pc], s1, s2);
-}
-
-static inline void emit_from_mask(int src, bb64 mask, Piece pc, bb64 occ,
-                                  bb64 them)
+static inline void emit_from_mask(MoveList *M, int src, bb64 mask, Piece pc,
+                                  bb64 occ, bb64 them)
 {
     bb64 quiets = mask & ~occ;
     bb64 caps   = mask &  them;
 
     while (quiets) {
         int dst = poplsb(&quiets);
-        emit_quiet_move(pc, src, dst);
+        emit_move(M, src, dst, pc, 0, 0, 0, 0, 0);
     }
 
     while (caps) {
         int dst = poplsb(&caps);
-        emit_capture_move(pc, src, dst);
+        emit_move(M, src, dst, pc, 0, 1, 0, 0, 0);
     }
 }
 
-static inline void emit_promo_quiet(Piece pc, int src, int dst)
+static inline void gen_pawn_pushes(const Position *P, MoveList *M, Color c)
 {
-    char s1[3], s2[3]; idxtosq(src, s1); idxtosq(dst, s2);
-    char P = sym[pc];
-    printf("%c=Q %s%s\n%c=R %s%s\n%c=B %s%s\n%c=N %s%s\n",
-           P,s1,s2, P,s1,s2, P,s1,s2, P,s1,s2);
-}
-static inline void emit_promo_capture(Piece pc, int src, int dst)
-{
-    char s1[3], s2[3]; idxtosq(src, s1); idxtosq(dst, s2);
-    char P = sym[pc];
-    printf("%cx %s%s %c=Q\n%cx %s%s %c=R\n%cx %s%s %c=B\n%cx %s%s %c=N\n",
-           P,s1,s2,P, P,s1,s2,P, P,s1,s2,P, P,s1,s2,P);
-}
-static inline void emit_en_passant(Piece pc, int src, int dst)
-{
-    char s1[3], s2[3]; idxtosq(src,s1); idxtosq(dst,s2);
-    printf("%ce %s%s\n", sym[pc], s1, s2);
-}
-
-static inline void gen_pawn_pushes(const Position *P, Color c)
-{
-    const bb64  occ   = P->both;
-    const bb64  empty = ~occ;
-    const bb64  pawns = P->pcbb[(c == WHITE) ? W_PAWN : B_PAWN];
-    const Piece pc    = (c == WHITE) ? W_PAWN : B_PAWN;
+    const bb64  occ    = P->both;
+    const bb64  empty  = ~occ;
+    const bb64  pawns  = P->pcbb[(c == WHITE) ? W_PAWN : B_PAWN];
+    const Piece pc     = (c == WHITE) ? W_PAWN : B_PAWN;
 
     /* Single square push mask */
     bb64 single = (c == WHITE) ? ((pawns >> 8) & empty) :
@@ -74,7 +49,12 @@ static inline void gen_pawn_pushes(const Position *P, Color c)
     {
         int dst = poplsb(&p);
         int src = (c == WHITE) ? dst + 8 : dst - 8;
-        emit_promo_quiet(pc, src, dst);
+
+        /* UCI mandates lowercase promotions */
+        emit_move(M, src, dst, pc, B_KNIGHT, 0, 0, 0, 0);
+        emit_move(M, src, dst, pc, B_BISHOP, 0, 0, 0, 0);
+        emit_move(M, src, dst, pc, B_ROOK,   0, 0, 0, 0);
+        emit_move(M, src, dst, pc, B_QUEEN,  0, 0, 0, 0);
     }
 
     /* Non-promotion single pawn pushes*/
@@ -83,7 +63,7 @@ static inline void gen_pawn_pushes(const Position *P, Color c)
     {
         int dst = poplsb(&p);
         int src = (c == WHITE) ? dst + 8 : dst - 8;
-        emit_quiet_move(pc, src, dst);
+        emit_move(M, src, dst, pc, 0, 0, 0, 0, 0);
     }
 
     /* Double pawn pushes */
@@ -97,11 +77,11 @@ static inline void gen_pawn_pushes(const Position *P, Color c)
     {
         int dst = poplsb(&p);
         int src = (c == WHITE) ? dst + 16 : dst - 16;
-        emit_quiet_move(pc, src, dst);
+        emit_move(M, src, dst, pc, 0, 0, 0, 0, 0);
     }
 }
 
-static inline void gen_pawn_captures(const Position *P, Color c)
+static inline void gen_pawn_captures(const Position *P, MoveList *M, Color c)
 {
     const bb64  them  = (c == WHITE) ? P->black : P->white;
     const bb64  pawns = P->pcbb[(c == WHITE) ? W_PAWN : B_PAWN];
@@ -109,36 +89,40 @@ static inline void gen_pawn_captures(const Position *P, Color c)
 
     for (bb64 x = pawns; x;)
     {
-        int from = poplsb(&x);
-        bb64 caps = ptable[c][from] & them;
+        int src = poplsb(&x);
+        bb64 caps = ptable[c][src] & them;
 
         /* Captures to promotion*/
         bb64 promo = (c==WHITE) ? (caps & RANK_8) : (caps & RANK_1);
         for (bb64 p = promo; p;) {
             int dst = poplsb(&p);
-            emit_promo_capture(pc, from, dst);
+            emit_move(M, src, dst, pc, B_KNIGHT, 1, 0, 0, 0);
+            emit_move(M, src, dst, pc, B_BISHOP, 1, 0, 0, 0);
+            emit_move(M, src, dst, pc, B_ROOK,   1, 0, 0, 0);
+            emit_move(M, src, dst, pc, B_QUEEN,  1, 0, 0, 0);
+            
         }
 
         /* Generic captures */
         caps &= ~promo;
         for (bb64 p = caps; p;) {
             int dst = poplsb(&p);
-            emit_capture_move(pc, from, dst);
+            emit_move(M, src, dst, pc, 0, 1, 0, 0, 0);
         }
 
         /* En passant captures */
         if (P->enpassant != none)
         {
-            bb64 epmask = ptable[c][from] & (1ULL << P->enpassant);
+            bb64 epmask = ptable[c][src] & (1ULL << P->enpassant);
             if (epmask) {
                 int dst = lsb(epmask);
-                emit_en_passant(pc, from, dst);
+                emit_move(M, src, dst, pc, 0, 1, 0, 1, 0);
             }
         }
     }
 }
 
-static inline void gen_king_moves(const Position* P, Color c)
+static inline void gen_king_moves(const Position* P, MoveList *M, Color c)
 {
     bb64  us   = (c == WHITE)? P->white : P->black;
     bb64  them = (c == WHITE)? P->black : P->white;
@@ -147,10 +131,10 @@ static inline void gen_king_moves(const Position* P, Color c)
     int   src  = lsb(P->pcbb[(c == WHITE) ? W_KING : B_KING]);
 
     bb64  mask = ktable[src] & ~us;
-    emit_from_mask(src, mask, pc, occ, them);
+    emit_from_mask(M, src, mask, pc, occ, them);
 }
 
-static inline void gen_castles(const Position* P, Color c)
+static inline void gen_castles(const Position* P, MoveList *M, Color c)
 {
     bb64  occ = P->both;
     Piece pc  = (c == WHITE) ? W_KING : B_KING;
@@ -163,7 +147,7 @@ static inline void gen_castles(const Position* P, Color c)
                 !checksquare(P, BLACK, e1) &&
                 !checksquare(P, BLACK, f1))
             {
-                emit_quiet_move(pc, e1, g1);
+                emit_move(M, e1, g1, pc, 0, 0, 0, 0, 1);
             }
         }
         if (P->castling & CASTLE_WQ)
@@ -172,7 +156,7 @@ static inline void gen_castles(const Position* P, Color c)
                 !checksquare(P, BLACK, e1) &&
                 !checksquare(P, BLACK, d1))
             {
-                emit_quiet_move(pc, e1, c1);
+                emit_move(M, e1, c1, pc, 0, 0, 0, 0, 1);
             }
         }
     }
@@ -184,7 +168,7 @@ static inline void gen_castles(const Position* P, Color c)
                 !checksquare(P, WHITE, e8) &&
                 !checksquare(P, WHITE, f8))
             {
-                emit_quiet_move(pc, e8, g8);
+                emit_move(M, e8, g8, pc, 0, 0, 0, 0, 1);
             }
         }
         if (P->castling & CASTLE_BQ)
@@ -193,13 +177,13 @@ static inline void gen_castles(const Position* P, Color c)
                 !checksquare(P, WHITE, e8) &&
                 !checksquare(P, WHITE, d8))
             {
-                emit_quiet_move(pc, e8, c8);
+                emit_move(M, e8, c8, pc, 0, 0, 0, 0, 1);
             }
         }
     }
 }
 
-static inline void gen_knight_moves(const Position *P, Color c)
+static inline void gen_knight_moves(const Position *P, MoveList *M, Color c)
 {   
     Piece pc   = (c == WHITE) ? W_KNIGHT : B_KNIGHT;
     bb64  us   = (c == WHITE) ? P->white : P->black;
@@ -211,12 +195,12 @@ static inline void gen_knight_moves(const Position *P, Color c)
     {
         int src = poplsb(&x);
         bb64 mask = ntable[src] & ~us;
-        emit_from_mask(src, mask, pc, occ, them);
+        emit_from_mask(M, src, mask, pc, occ, them);
     }
 
 }
 
-static inline void gen_bishop_moves(const Position *P, Color c)
+static inline void gen_bishop_moves(const Position *P, MoveList *M, Color c)
 {   
     Piece pc   = (c == WHITE) ? W_BISHOP : B_BISHOP;
     bb64  us   = (c == WHITE) ? P->white : P->black;
@@ -228,12 +212,12 @@ static inline void gen_bishop_moves(const Position *P, Color c)
     {
         int src = poplsb(&x);
         bb64 mask = bishop_attacks_pext(src, occ) & ~us;
-        emit_from_mask(src, mask, pc, occ, them);
+        emit_from_mask(M, src, mask, pc, occ, them);
     }
 
 }
 
-static inline void gen_rook_moves(const Position *P, Color c)
+static inline void gen_rook_moves(const Position *P, MoveList *M, Color c)
 {   
     Piece pc   = (c == WHITE) ? W_ROOK : B_ROOK;
     bb64  us   = (c == WHITE) ? P->white : P->black;
@@ -245,12 +229,12 @@ static inline void gen_rook_moves(const Position *P, Color c)
     {
         int src = poplsb(&x);
         bb64 mask = rook_attacks_pext(src, occ) & ~us;
-        emit_from_mask(src, mask, pc, occ, them);
+        emit_from_mask(M, src, mask, pc, occ, them);
     }
 
 }
 
-static inline void gen_queen_moves(const Position *P, Color c)
+static inline void gen_queen_moves(const Position *P, MoveList *M, Color c)
 {   
     Piece pc   = (c == WHITE) ? W_QUEEN : B_QUEEN;
     bb64  us   = (c == WHITE) ? P->white : P->black;
@@ -262,23 +246,23 @@ static inline void gen_queen_moves(const Position *P, Color c)
     {
         int src = poplsb(&x);
         bb64 mask = queen_attacks_pext(src, occ) & ~us;
-        emit_from_mask(src, mask, pc, occ, them);
+        emit_from_mask(M, src, mask, pc, occ, them);
     }
 
 }
 
-void gen_all(const Position* P)
+void gen_all(const Position* P, MoveList *M)
 {
     const Color side = (Color)P->side;
 
-    gen_pawn_pushes(P, side);
-    gen_pawn_captures(P, side);
-    gen_king_moves(P, side);
-    gen_castles(P, side);
-    gen_knight_moves(P, side);
-    gen_bishop_moves(P, side);
-    gen_rook_moves(P, side);
-    gen_queen_moves(P, side);
+    gen_pawn_pushes(P, M, side);
+    gen_pawn_captures(P, M, side);
+    gen_king_moves(P, M, side);
+    gen_castles(P, M, side);
+    gen_knight_moves(P, M, side);
+    gen_bishop_moves(P, M, side);
+    gen_rook_moves(P, M, side);
+    gen_queen_moves(P, M, side);
 }
 
 void add_move(MoveList *M, uint32_t move)
@@ -304,4 +288,6 @@ void print_moves(const MoveList *M)
                                               (int)dcdcstl(M->moves[i]));
         i++;
     }
+
+    printf("\n    Total moves=%d\n", M->nmoves);
 }
