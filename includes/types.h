@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#define MAX_MOVES 256
+
 typedef uint64_t bb64;
 
 typedef enum
@@ -49,25 +51,22 @@ GenMode;
 
 typedef struct
 {
-    bb64 pcbb[12];              /* Occupancy bitboards for pieces */
-    bb64 white, black, both;    /* Occupancy bitboards for colors */
-    int  side;                  /* Color to move */
-    int  enpassant;             /* En passants square*/
-    uint8_t castling;           /* Castling rights bitmask */
-    uint8_t halfmove;           /* 50 move counter */
-    uint16_t fullmove;          /* Move number */
-    uint64_t zobrist;           /* Zobrist position hash */
+    bb64     pcbb[12];              /* Occupancy bitboards for pieces */
+    bb64     white, black, both;    /* Occupancy bitboards for colors */
+    int      side;                  /* Color to move */
+    int      enpassant;             /* En passants square*/
+    uint8_t  castling;              /* Castling rights bitmask */
+    uint8_t  halfmove;              /* 50 move counter */
+    uint16_t fullmove;              /* Move number */
+    uint64_t zobrist;               /* Zobrist position hash */
 }
 Position;
 
 typedef struct
 {
-    int move;
-    int captured_pc;
-    int ep_sq, side;
-    uint8_t castling, halfmove;
-    uint64_t zobrist;
+    uint32_t moves[MAX_MOVES];
+    int      nmoves;
 }
-Undo;
+MoveList;
 
 #endif /* TYPES_H */

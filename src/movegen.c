@@ -6,6 +6,8 @@
 /* Debug symbols array */
 const char sym[] = {'P','N','B','R','Q','K','p','n','b','r','q','k'};
 
+MoveList mvs;
+
 static inline void emit_quiet_move(Piece pc, int src, int dst)
 {
     char s1[3], s2[3]; idxtosq(src, s1); idxtosq(dst, s2);
@@ -277,4 +279,29 @@ void gen_all(const Position* P)
     gen_bishop_moves(P, side);
     gen_rook_moves(P, side);
     gen_queen_moves(P, side);
+}
+
+void add_move(MoveList *M, uint32_t move)
+{
+    /* Assumes nmoves can never go above MAX_MOVES */
+    M->moves[(M->nmoves)++] = move;
+}
+
+void print_moves(const MoveList *M)
+{
+    printf("    move   pc  cap dbl enp cstl\n\n");
+    int i = 0;
+    while (i < M->nmoves)
+    {
+        char src[3]; idxtosq(dcdsrc(M->moves[i]), src);
+        char dst[3]; idxtosq(dcddst(M->moves[i]), dst);
+        char c = idxtopc(dcdpromo(M->moves[i]));
+        printf("    %s%s%c  %c   %d   %d   %d   %d\n", src, dst, (c == 'P') ? ' ' : c,
+                                              idxtopc(dcdpc(M->moves[i])),
+                                              (int)dcdcap(M->moves[i]),
+                                              (int)dcddbl(M->moves[i]),
+                                              (int)dcden(M->moves[i]),
+                                              (int)dcdcstl(M->moves[i]));
+        i++;
+    }
 }

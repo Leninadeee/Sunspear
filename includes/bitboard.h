@@ -90,4 +90,24 @@ static inline int pctoidx(char c)
     }
 }
 
+/* Converts a 'Piece' index to its character representation */
+static inline char idxtopc(Piece pc) {
+    switch (pc) {
+        case W_PAWN:   return 'P';
+        case W_KNIGHT: return 'N';
+        case W_BISHOP: return 'B';
+        case W_ROOK:   return 'R';
+        case W_QUEEN:  return 'Q';
+        case W_KING:   return 'K';
+        case B_PAWN:   return 'p';
+        case B_KNIGHT: return 'n';
+        case B_BISHOP: return 'b';
+        case B_ROOK:   return 'r';
+        case B_QUEEN:  return 'q';
+        case B_KING:   return 'k';
+        default:       return '?';
+    }
+}
+
+
 #endif /* BITBOARD_H*/

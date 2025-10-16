@@ -43,7 +43,7 @@ static inline bb64 queen_attacks_pext(int sq, bb64 occ) {
 /* Check if a square sq is attacked by color c */
 static inline bool checksquare(const Position * P, Color c, Square sq)
 {
-    const bb64 occ = pos.both;
+    const bb64 occ = P->both;
 
     const int PAWN   = (c == WHITE) ? W_PAWN   : B_PAWN;
     const int KNIGHT = (c == WHITE) ? W_KNIGHT : B_KNIGHT;
