@@ -41,26 +41,26 @@ static inline bb64 queen_attacks_pext(int sq, bb64 occ) {
 }
 
 /* Check if a square sq is attacked by color c */
-static inline bool checksquare(Color c, Square sq)
+static inline bool checksquare(const Position * P, Color c, Square sq)
 {
     const bb64 occ = pos.both;
 
-    const int P = (c == WHITE) ? W_PAWN   : B_PAWN;
-    const int N = (c == WHITE) ? W_KNIGHT : B_KNIGHT;
-    const int B = (c == WHITE) ? W_BISHOP : B_BISHOP;
-    const int R = (c == WHITE) ? W_ROOK   : B_ROOK;
-    const int Q = (c == WHITE) ? W_QUEEN  : B_QUEEN;
-    const int K = (c == WHITE) ? W_KING   : B_KING;
+    const int PAWN   = (c == WHITE) ? W_PAWN   : B_PAWN;
+    const int KNIGHT = (c == WHITE) ? W_KNIGHT : B_KNIGHT;
+    const int BISHOP = (c == WHITE) ? W_BISHOP : B_BISHOP;
+    const int ROOK   = (c == WHITE) ? W_ROOK   : B_ROOK;
+    const int QUEEN  = (c == WHITE) ? W_QUEEN  : B_QUEEN;
+    const int KING   = (c == WHITE) ? W_KING   : B_KING;
 
-    if (ptable[c ^ 1][sq] & pos.pcbb[P]) return true;
+    if (ptable[c ^ 1][sq] & P->pcbb[PAWN]) return true;
 
-    if (ntable[sq] & pos.pcbb[N]) return true;
+    if (ntable[sq] & P->pcbb[KNIGHT]) return true;
 
-    if (bishop_attacks_pext(sq, occ) & (pos.pcbb[B] | pos.pcbb[Q])) return true;
+    if (bishop_attacks_pext(sq, occ) & (P->pcbb[BISHOP] | P->pcbb[QUEEN])) return true;
 
-    if (rook_attacks_pext(sq, occ) & (pos.pcbb[R] | pos.pcbb[Q])) return true;
+    if (rook_attacks_pext(sq, occ) & (P->pcbb[ROOK] | P->pcbb[QUEEN])) return true;
 
-    if (ktable[sq] & pos.pcbb[K]) return true;
+    if (ktable[sq] & P->pcbb[KING]) return true;
 
     return false;
 }

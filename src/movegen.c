@@ -18,6 +18,23 @@ static inline void emit_capture_move(Piece pc, int src, int dst)
     printf("%cx %s%s\n", sym[pc], s1, s2);
 }
 
+static inline void emit_from_mask(int src, bb64 mask, Piece pc, bb64 occ,
+                                  bb64 them)
+{
+    bb64 quiets = mask & ~occ;
+    bb64 caps   = mask &  them;
+
+    while (quiets) {
+        int dst = poplsb(&quiets);
+        emit_quiet_move(pc, src, dst);
+    }
+
+    while (caps) {
+        int dst = poplsb(&caps);
+        emit_capture_move(pc, src, dst);
+    }
+}
+
 static inline void emit_promo_quiet(Piece pc, int src, int dst)
 {
     char s1[3], s2[3]; idxtosq(src, s1); idxtosq(dst, s2);
@@ -119,10 +136,76 @@ static inline void gen_pawn_captures(const Position *P, Color c)
     }
 }
 
+static inline void gen_king_moves(const Position* P, Color c)
+{
+    bb64  us   = (c == WHITE)? P->white : P->black;
+    bb64  them = (c == WHITE)? P->black : P->white;
+    bb64  occ  = P->both;
+    Piece pc   = (c == WHITE) ? W_KING : B_KING;
+    int   src  = lsb(P->pcbb[(c == WHITE) ? W_KING : B_KING]);
+
+    bb64  mask = ktable[src] & ~us;
+    emit_from_mask(src, mask, pc, occ, them);
+}
+
+static inline void gen_castles(const Position* P, Color c)
+{
+    bb64  occ = P->both;
+    Piece pc  = (c == WHITE) ? W_KING : B_KING;
+
+    if (c == WHITE)
+    {
+        if (P->castling & CASTLE_WK)
+        {
+            if (!(occ & ((1ULL << f1) | (1ULL << g1))) &&
+                !checksquare(P, BLACK, e1) &&
+                !checksquare(P, BLACK, f1))
+            {
+                emit_quiet_move(pc, e1, g1);
+            }
+        }
+        if (P->castling & CASTLE_WQ)
+        {
+            if (!(occ & ((1ULL << b1) | (1ULL << c1) | (1ULL << d1))) &&
+                !checksquare(P, BLACK, e1) &&
+                !checksquare(P, BLACK, d1))
+            {
+                emit_quiet_move(pc, e1, c1);
+            }
+        }
+    }
+    else
+    {
+        if (P->castling & CASTLE_BK)
+        {
+            if (!(occ & ((1ULL << f8) | (1ULL << g8))) &&
+                !checksquare(P, WHITE, e8) &&
+                !checksquare(P, WHITE, f8))
+            {
+                emit_quiet_move(pc, e8, g8);
+            }
+        }
+        if (P->castling & CASTLE_BQ)
+        {
+            if (!(occ & ((1ULL << b8)|(1ULL << c8) | (1ULL << d8))) &&
+                !checksquare(P, WHITE, e8) &&
+                !checksquare(P, WHITE, d8))
+            {
+                emit_quiet_move(pc, e8, c8);
+            }
+        }
+    }
+}
+
 void gen_all(const Position* P)
 {
     const Color side = (Color)P->side;
 
-    gen_pawn_pushes(P, side);
-    gen_pawn_captures(P, side);
+    //gen_pawn_pushes(P, side);
+    //gen_pawn_captures(P, side);
+    gen_castles(P, side);
+    gen_king_moves(P, side);
+    gen_castles(P, side^1);
+    gen_king_moves(P, side^1);
+
 }
