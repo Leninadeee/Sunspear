@@ -15,14 +15,6 @@
 #define RANK_7  0x000000000000FF00ULL
 #define RANK_8  0x00000000000000FFULL
 
-extern void gen_pawn_moves(const Position *, Color);
-/* TODO
-extern void gen_king_moves(const Position *, Color);
-extern void gen_knight_moves(const Position *, Color);
-extern void gen_bishop_moves(const Position *, Color);
-extern void gen_rook_moves(const Position *, Color);
-extern void gen_queen_moves(const Position *, Color);
-*/
-extern void gen_all(void);
+extern void gen_all();
 
 #endif /* MOVEGEN_H */

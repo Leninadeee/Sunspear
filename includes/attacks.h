@@ -4,7 +4,7 @@
 #include <immintrin.h>
 #include <stdbool.h>
 
-#include "types.h"
+#include "bitboard.h"
 
 #define HAS_PEXT    1
 
@@ -38,6 +38,31 @@ static inline bb64 rook_attacks_pext(int sq, bb64 occ) {
 /* Returns a queen attack configuration */
 static inline bb64 queen_attacks_pext(int sq, bb64 occ) {
     return bishop_attacks_pext(sq, occ) | rook_attacks_pext(sq, occ);
+}
+
+/* Check if a square sq is attacked by color c */
+static inline bool checksquare(Color c, Square sq)
+{
+    const bb64 occ = pos.both;
+
+    const int P = (c == WHITE) ? W_PAWN   : B_PAWN;
+    const int N = (c == WHITE) ? W_KNIGHT : B_KNIGHT;
+    const int B = (c == WHITE) ? W_BISHOP : B_BISHOP;
+    const int R = (c == WHITE) ? W_ROOK   : B_ROOK;
+    const int Q = (c == WHITE) ? W_QUEEN  : B_QUEEN;
+    const int K = (c == WHITE) ? W_KING   : B_KING;
+
+    if (ptable[c ^ 1][sq] & pos.pcbb[P]) return true;
+
+    if (ntable[sq] & pos.pcbb[N]) return true;
+
+    if (bishop_attacks_pext(sq, occ) & (pos.pcbb[B] | pos.pcbb[Q])) return true;
+
+    if (rook_attacks_pext(sq, occ) & (pos.pcbb[R] | pos.pcbb[Q])) return true;
+
+    if (ktable[sq] & pos.pcbb[K]) return true;
+
+    return false;
 }
 
 #endif /* ATTACKS_H */

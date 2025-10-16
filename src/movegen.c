@@ -3,110 +3,126 @@
 #include "attacks.h"
 #include "movegen.h"
 
-inline void gen_pawn_moves(const Position *pos, Color c)
-{
-    const bb64 occ   = pos->both;
-    const bb64 empty = ~occ;
-    const bb64 pawns = pos->pcbb[(c==WHITE) ? W_PAWN : B_PAWN];
-    const bb64 enemies  = (c == WHITE) ? pos->black : pos->white;
+/* Debug symbols array */
+const char sym[] = {'P','N','B','R','Q','K','p','n','b','r','q','k'};
 
+static inline void emit_quiet_move(Piece pc, int src, int dst)
+{
+    char s1[3], s2[3]; idxtosq(src, s1); idxtosq(dst, s2);
+    printf("%c  %s%s\n", sym[pc], s1, s2);
+}
+
+static inline void emit_capture_move(Piece pc, int src, int dst)
+{
+    char s1[3], s2[3]; idxtosq(src,s1); idxtosq(dst,s2);
+    printf("%cx %s%s\n", sym[pc], s1, s2);
+}
+
+static inline void emit_promo_quiet(Piece pc, int src, int dst)
+{
+    char s1[3], s2[3]; idxtosq(src, s1); idxtosq(dst, s2);
+    char P = sym[pc];
+    printf("%c=Q %s%s\n%c=R %s%s\n%c=B %s%s\n%c=N %s%s\n",
+           P,s1,s2, P,s1,s2, P,s1,s2, P,s1,s2);
+}
+static inline void emit_promo_capture(Piece pc, int src, int dst)
+{
+    char s1[3], s2[3]; idxtosq(src, s1); idxtosq(dst, s2);
+    char P = sym[pc];
+    printf("%cx %s%s %c=Q\n%cx %s%s %c=R\n%cx %s%s %c=B\n%cx %s%s %c=N\n",
+           P,s1,s2,P, P,s1,s2,P, P,s1,s2,P, P,s1,s2,P);
+}
+static inline void emit_en_passant(Piece pc, int src, int dst)
+{
+    char s1[3], s2[3]; idxtosq(src,s1); idxtosq(dst,s2);
+    printf("%ce %s%s\n", sym[pc], s1, s2);
+}
+
+static inline void gen_pawn_pushes(const Position *P, Color c)
+{
+    const bb64  occ   = P->both;
+    const bb64  empty = ~occ;
+    const bb64  pawns = P->pcbb[(c == WHITE) ? W_PAWN : B_PAWN];
+    const Piece pc    = (c == WHITE) ? W_PAWN : B_PAWN;
+
+    /* Single square push mask */
     bb64 single = (c == WHITE) ? ((pawns >> 8) & empty) :
                                  ((pawns << 8) & empty);
 
+    /* Quiet promotions */
+    bb64 promo = (c == WHITE) ? (single & RANK_8) : (single & RANK_1);
+    for (bb64 p = promo; p;)
+    {
+        int dst = poplsb(&p);
+        int src = (c == WHITE) ? dst + 8 : dst - 8;
+        emit_promo_quiet(pc, src, dst);
+    }
+
+    /* Non-promotion single pawn pushes*/
+    single &= ~promo;
+    for (bb64 p = single; p;)
+    {
+        int dst = poplsb(&p);
+        int src = (c == WHITE) ? dst + 8 : dst - 8;
+        emit_quiet_move(pc, src, dst);
+    }
+
+    /* Double pawn pushes */
     bb64 dbl;
-    if (c == WHITE)
+    if (c == WHITE) { bb64 step1 = ((pawns & RANK_2) >> 8) & empty;
+                      dbl = ((step1 >> 8) & empty) & RANK_4; }
+    else            { bb64 step1 = ((pawns & RANK_7) << 8) & empty;
+                      dbl = ((step1 << 8) & empty) & RANK_5; }
+
+    for (bb64 p = dbl; p;)
     {
-        bb64 fwdstep = ((pawns & RANK_2) >> 8) & empty;
-        dbl = ((fwdstep >> 8) & empty) & RANK_4;
+        int dst = poplsb(&p);
+        int src = (c == WHITE) ? dst + 16 : dst - 16;
+        emit_quiet_move(pc, src, dst);
     }
-    else
+}
+
+static inline void gen_pawn_captures(const Position *P, Color c)
+{
+    const bb64  them  = (c == WHITE) ? P->black : P->white;
+    const bb64  pawns = P->pcbb[(c == WHITE) ? W_PAWN : B_PAWN];
+    const Piece pc    = (c == WHITE) ? W_PAWN : B_PAWN;
+
+    for (bb64 x = pawns; x;)
     {
-        bb64 fwdstep = ((pawns & RANK_7) << 8) & empty;
-        dbl = ((fwdstep << 8) & empty) & RANK_5;
-    }
+        int from = poplsb(&x);
+        bb64 caps = ptable[c][from] & them;
 
-    bb64 promotion = (c == WHITE) ? (single & RANK_8) : (single & RANK_1);
-
-    /* Generate quiet promotions */
-    while (promotion)
-    {
-        int dst = pop_lsb(promotion);
-        int src = (c == WHITE) ? (dst + 8) : (dst - 8);
-        char s1[3], s2[3]; idxtosq(src,s1); idxtosq(dst,s2);
-        printf("%c=Q %s%s\n", (!c) ? 'P' : 'p', s1, s2);
-        printf("%c=R %s%s\n", (!c) ? 'P' : 'p', s1, s2);
-        printf("%c=B %s%s\n", (!c) ? 'P' : 'p', s1, s2);
-        printf("%c=N %s%s\n", (!c) ? 'P' : 'p', s1, s2);
-    }
-
-    /* Generate single pawn pushes */
-    while (single) 
-    {
-        int dst = pop_lsb(single);
-        int src = (c == WHITE) ? (dst + 8) : (dst - 8);
-
-        char s1[3], s2[3]; idxtosq(src, s1); idxtosq(dst, s2);
-        printf(" %c1 %s%s\n", (!c) ? 'P' : 'p', s1, s2);
-    }
-
-    /* Generate double pawn pushes */
-    while (dbl)
-    {
-        int dst = pop_lsb(dbl);
-        int src = (c == WHITE) ? (dst + 16) : (dst - 16);
-
-        char s1[3], s2[3]; idxtosq(src, s1); idxtosq(dst, s2);
-        printf(" %c2 %s%s\n", (!c) ? 'P' : 'p', s1, s2);
-    }
-
-    /* Generate pawn captures */
-    bb64 copy = pawns;
-    while (copy)
-    {
-        int src = pop_lsb(copy);
-        
-        bb64 captures = ptable[c][src] & enemies;
-        bb64 promocaps = captures & ((c == WHITE) ? RANK_8 : RANK_1);
-        captures ^= promocaps;
-
-        char s1[3]; idxtosq(src, s1); char buf[7];
-        snprintf(buf, 6, "%cx %s", (!c) ? 'P' : 'p', s1);
-        while (captures)
-        {
-            int dst = pop_lsb(captures);
-            char s2[3]; idxtosq(dst, s2);
-            printf("%s%s\n", buf, s2);
+        /* Captures to promotion*/
+        bb64 promo = (c==WHITE) ? (caps & RANK_8) : (caps & RANK_1);
+        for (bb64 p = promo; p;) {
+            int dst = poplsb(&p);
+            emit_promo_capture(pc, from, dst);
         }
 
-        snprintf(buf, 6, "%cx %s", (!c) ? 'P' : 'p', s1);
-        while (promocaps)
-        {
-            int dst = pop_lsb(promocaps);
-            char s2[3]; idxtosq(dst, s2);
-            printf("%s%s %c=Q\n", buf, s2, (!c) ? 'P' : 'p');
-            printf("%s%s %c=R\n", buf, s2, (!c) ? 'P' : 'p');
-            printf("%s%s %c=B\n", buf, s2, (!c) ? 'P' : 'p');
-            printf("%s%s %c=N\n", buf, s2, (!c) ? 'P' : 'p');
+        /* Generic captures */
+        caps &= ~promo;
+        for (bb64 p = caps; p;) {
+            int dst = poplsb(&p);
+            emit_capture_move(pc, from, dst);
         }
 
-        if (pos->enpassant != none)
+        /* En passant captures */
+        if (P->enpassant != none)
         {
-            bb64 enmask = ptable[c][src] & (1ULL << pos->enpassant);
-
-            if (enmask)
-            {
-                int dst = pop_lsb(enmask);
-                char s2[3]; idxtosq(dst, s2);
-                printf("%ce %s%s\n", (!c) ? 'P' : 'p', s1, s2);
+            bb64 epmask = ptable[c][from] & (1ULL << P->enpassant);
+            if (epmask) {
+                int dst = lsb(epmask);
+                emit_en_passant(pc, from, dst);
             }
         }
     }
-
 }
 
-
-void gen_all()
+void gen_all(const Position* P)
 {
-    gen_pawn_moves(&pos, WHITE);
-    gen_pawn_moves(&pos, BLACK);
+    const Color side = (Color)P->side;
+
+    gen_pawn_pushes(P, side);
+    gen_pawn_captures(P, side);
 }

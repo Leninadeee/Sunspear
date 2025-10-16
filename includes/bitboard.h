@@ -20,6 +20,7 @@
 #define CMK_POSITION    "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9 "
 #define REPETITION      "2r3k1/R7/8/1R6/8/8/P4KPP/8 w - - 0 40 "
 #define PAWN_DEBUG      "r3k2r/pPppqpb1/bn2pnp1/3PN3/1p2P3/2N2QP1/PPPBBP1P/R3K2R w KQkq - 0 1 "
+#define KING_DEBUG      "rn1qk2r/p1pp1pp1/bp1b1n1p/4p3/N2PP3/4BNP1/PPPQ1PBP/R3K2R b KQq - 5 9"
 
 extern  Position    pos;    /* Position defining struct */
 
@@ -46,7 +47,7 @@ static inline int lsb(bb64 bb)
     return __builtin_ctzll(bb);
 }
 
-static inline int pop_lsb(bb64 * bb)
+static inline int poplsb(bb64 * bb)
 {
     int i = lsb(*bb);
     *bb &= *bb - 1;
@@ -54,21 +55,24 @@ static inline int pop_lsb(bb64 * bb)
 }
 
 /* Converts an index to its tile string representation */
-static inline void idxtosq(int sq, char buf[3]) {
+static inline void idxtosq(int sq, char buf[3])
+{
     buf[0] = 'a' + (sq & 7);
     buf[1] = '8' - (sq >> 3);
     buf[2] = '\0';
 }
 
 /* Converts a tile string to its index representation */
-static inline int sqtoidx(const char *str) {
+static inline int sqtoidx(const char *str)
+{
     int f = str[0] - 'a';
     int r = '8' - str[1];
     return (r << 3) | f;
 }
 
 /* Converts a character piece to its 'Piece' index */
-static inline int pctoidx(char c) {
+static inline int pctoidx(char c)
+{
     switch (c) {
         case 'P': return W_PAWN;
         case 'N': return W_KNIGHT;
