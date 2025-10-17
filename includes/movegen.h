@@ -15,7 +15,7 @@
 #define RANK_7  0x000000000000FF00ULL
 #define RANK_8  0x00000000000000FFULL
 
-extern MoveList mvs;
+extern MoveList ml;
 
 extern void gen_all(const Position *, MoveList *);
 extern void add_move(MoveList *, uint32_t);

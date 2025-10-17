@@ -6,7 +6,7 @@
 /* Debug symbols array */
 const char sym[] = {'P','N','B','R','Q','K','p','n','b','r','q','k'};
 
-MoveList mvs;
+MoveList ml;
 
 static inline void emit_move(MoveList *M, int src, int dst, Piece pc,
                              Piece promo, bool cap, bool dbl, bool enp,
