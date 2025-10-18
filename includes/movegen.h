@@ -15,11 +15,24 @@
 #define RANK_7  0x000000000000FF00ULL
 #define RANK_8  0x00000000000000FFULL
 
+static const char cstlmask[64] = {
+     7, 15, 15, 15,  3, 15, 15, 11,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    13, 15, 15, 15, 12, 15, 15, 14
+};
+
+
 extern MoveList ml;
 
-extern void gen_all(const Position *, MoveList *);
+extern void gen_all(const Position *, MoveList *, GenMode);
 extern void add_move(MoveList *, uint32_t);
 extern void print_moves(const MoveList *);
+extern bool move(Position *, uint32_t);
 
 /* Generate a 32 bit (24 used) integer encoding a move*/
 static inline uint32_t encode(int src, int dst, Piece pc, Piece promo,
@@ -35,6 +48,21 @@ static inline uint32_t encode(int src, int dst, Piece pc, Piece promo,
             (cstl  << 23);
 
 }
+
+static inline void decode(uint32_t encoding, int *src, int *dst, Piece *pc,
+                         Piece *promo, bool *cap, bool *dbl, bool *en,
+                         bool *cstl)
+{
+    *src    =  encoding & 0x0000003f;
+    *dst    = (encoding & 0x00000fc0) >> 6;
+    *pc     = (encoding & 0x0000f000) >> 12;
+    *promo  = (encoding & 0x000f0000) >> 16;
+    *cap    = (encoding & 0x00100000) >> 20;
+    *dbl    = (encoding & 0x00200000) >> 21;
+    *en     = (encoding & 0x00400000) >> 22;
+    *cstl   = (encoding & 0x00800000) >> 23;
+}
+
 /* Decode a field given an encoding */
 static inline int dcdsrc(uint32_t encoding)
 {
@@ -43,7 +71,7 @@ static inline int dcdsrc(uint32_t encoding)
 
 static inline int dcddst(uint32_t encoding)
 {
-    return (encoding & 0xfc0) >> 6;
+    return (encoding & 0x00000fc0) >> 6;
 }
 
 static inline Piece dcdpc(uint32_t encoding)

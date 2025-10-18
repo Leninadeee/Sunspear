@@ -1,5 +1,5 @@
 CC      := gcc
-CFLAGS  := -O3 -Wall -Wextra -std=c11 -mbmi2
+CFLAGS  := -O3 -Wall -Wextra -std=c23 -mbmi2
 INCLUDE := -I./includes
 SRC     := src/*
 BIN     := engine
