@@ -1,8 +1,6 @@
 #ifndef MOVEGEN_H
 #define MOVEGEN_H
 
-#include <stdio.h>
-
 #include "bitboard.h"
 
 /* Bitboards with rank i set */
@@ -25,9 +23,6 @@ static const char cstlmask[64] = {
     15, 15, 15, 15, 15, 15, 15, 15,
     13, 15, 15, 15, 12, 15, 15, 14
 };
-
-
-extern MoveList ml;
 
 extern void gen_all(const Position *, MoveList *, GenMode);
 extern void add_move(MoveList *, uint32_t);

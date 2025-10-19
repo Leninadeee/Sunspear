@@ -5,8 +5,6 @@
 
 #include "bitboard.h"
 
-Position pos;
-
 const char pc_ascii[12] = {
     'P', 'N', 'B', 'R', 'Q', 'K',
     'p', 'n', 'b', 'r', 'q', 'k'

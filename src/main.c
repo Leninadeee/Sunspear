@@ -9,8 +9,10 @@ int main(void)
 {
     printf("Initializing engine...\n\n");
 
+    Position pos = {0};
+    MoveList ml  = {0};
     bb64 bb = 0ULL;
-    // print_bitboard(bb);
+    print_bitboard(bb);
     init_leapers();
     init_sliders();
 

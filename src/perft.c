@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "movegen.h"
 #include "perft.h"
 
@@ -51,4 +53,5 @@ void perft_driver()
     perft_test(POS4, pos4);
     perft_test(POS5, pos5);
     perft_test(POS6, pos6);
+    printf("Perft tests complete.\n");
 }

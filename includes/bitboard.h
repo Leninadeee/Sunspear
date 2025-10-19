@@ -18,11 +18,9 @@
 #define KILLER_POSITION "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w KQkq e6 0 1"
 #define REPETITION      "2r3k1/R7/8/1R6/8/8/P4KPP/8 w - - 0 40 "
 
-extern  Position    pos;    /* Position defining struct */
-
-extern  const bb64  NOT_A;  /*  Not in file A  */
+extern  const bb64  NOT_A;  /*  Not in file A     */
 extern  const bb64  NOT_AB; /*  Not in file A, B  */
-extern  const bb64  NOT_H;  /*  Not in file H  */
+extern  const bb64  NOT_H;  /*  Not in file H     */
 extern  const bb64  NOT_GH; /*  Not in file G, H  */
 
 extern  void    print_bitboard(bb64);
