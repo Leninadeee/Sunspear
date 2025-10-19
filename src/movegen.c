@@ -273,7 +273,7 @@ void gen_all(const Position *P, MoveList *M, GenMode mode)
     gen_queen_moves(mode, P, M, side);
 }
 
-bool move(Position *P, uint32_t encoding)
+bool make_move(Position *P, uint32_t encoding)
 {
     Position prev = *P;
     int src, dst;

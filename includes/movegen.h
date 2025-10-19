@@ -27,7 +27,7 @@ static const char cstlmask[64] = {
 extern void gen_all(const Position *, MoveList *, GenMode);
 extern void add_move(MoveList *, uint32_t);
 extern void print_moves(const MoveList *);
-extern bool move(Position *, uint32_t);
+extern bool make_move(Position *, uint32_t);
 
 /* Generate a 32 bit (24 used) integer encoding a move*/
 static inline uint32_t encode(int src, int dst, Piece pc, Piece promo,
