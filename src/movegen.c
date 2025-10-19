@@ -359,8 +359,6 @@ bool move(Position *P, uint32_t encoding)
 
     P->side ^= 1;
 
-    print_board(P);
-
     return true;
 }
 

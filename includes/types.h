@@ -7,6 +7,8 @@
 
 typedef uint64_t bb64;
 
+typedef unsigned long long ull;
+
 typedef enum
 {
     a8, b8, c8, d8, e8, f8, g8, h8,
@@ -53,12 +55,12 @@ typedef struct
 {
     bb64     pcbb[12];              /* Occupancy bitboards for pieces */
     bb64     white, black, both;    /* Occupancy bitboards for colors */
-    int      side;                  /* Color to move */
-    int      enpassant;             /* En passants square*/
-    uint8_t  castling;              /* Castling rights bitmask */
-    uint8_t  halfmove;              /* 50 move counter */
-    uint16_t fullmove;              /* Move number */
-    uint64_t zobrist;               /* Zobrist position hash */
+    int      side;                  /* Color to move                  */
+    int      enpassant;             /* En passants square             */
+    uint8_t  castling;              /* Castling rights bitmask        */
+    uint8_t  halfmove;              /* 50 move counter                */
+    uint16_t fullmove;              /* Move number                    */
+    uint64_t zobrist;               /* Zobrist position hash          */
 }
 Position;
 
