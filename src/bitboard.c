@@ -61,11 +61,15 @@ void print_board(const Position *pos)
     if (pos->enpassant >= 0) { idxtosq(pos->enpassant, ep); }
     printf(" Enpassant: %s\n", pos->enpassant >= 0 ? ep : "N/A");
 
-    printf("  Castling: %c%c%c%c\n\n",
+    printf("  Castling: %c%c%c%c\n",
            (pos->castling & CASTLE_WK) ? 'K' : '-',
            (pos->castling & CASTLE_WQ) ? 'Q' : '-',
            (pos->castling & CASTLE_BK) ? 'k' : '-',
            (pos->castling & CASTLE_BQ) ? 'q' : '-');
+
+    printf("  HM clock: %d\n", pos->halfmove);
+
+    printf("  FM count: %d\n\n", pos->fullmove);
 }
 
 void reset_board(Position * pos)
