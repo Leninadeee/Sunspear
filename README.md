@@ -1,2 +1,2 @@
-# stackphish
+# Sunspear
 C Bitboard Engine

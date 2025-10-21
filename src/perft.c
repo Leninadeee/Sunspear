@@ -3,7 +3,7 @@
 #include "movegen.h"
 #include "perft.h"
 
-#define MAX_DEPTH   5
+#define MAX_DEPTH   6
 
 ull perft(Position *P, int depth)
 {

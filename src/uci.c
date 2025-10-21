@@ -4,6 +4,7 @@
 
 #include "bitboard.h"
 #include "movegen.h"
+#include "search.h"
 #include "types.h"
 #include "uci.h"
 
@@ -25,7 +26,6 @@ uint32_t parse_move(const Position *P, const char *mvstr)
     }
 
     MoveList mv = (MoveList){0};
-    print_board(P);
     gen_all(P, &mv, GEN_ALL);
 
     for (int i = 0; i < mv.nmoves; i++) {
@@ -79,25 +79,32 @@ void parse_position(Position *P, char *cmd) {
             if (*mv == ' ') mv++;
         }
     }
-
-    //print_board(P);
 }
 
 
 void search(Position *P, int depth)
 {
-    printf("bestmove d2d4\n");
+    uint32_t mv;
+
+    negamax(P, depth, 0, -INF, INF, &mv);
+
+    char buf1[3]; idxtosq(dcdsrc(mv), buf1);
+    char buf2[3]; idxtosq(dcddst(mv), buf2);
+    
+    Piece promo = dcdpromo(mv);
+    if (promo) printf("bestmove %s%s%c\n", buf1, buf2, (char)(idxtopc(promo) | 32));
+    else       printf("bestmove %s%s\n", buf1, buf2);
 }
 
 void parse_go(Position *P, char *cmd)
 {
     char *ptr;
-    int depth = -1;
+    int depth = 6;
 
     if ((ptr = strstr(cmd, "depth")))
         depth = atoi(ptr + 6);
     
-    search(P, depth);
+    search(P, MAX(depth, 6));
 }
 
 void uci_loop(Position *P)

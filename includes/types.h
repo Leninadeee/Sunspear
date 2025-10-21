@@ -29,7 +29,8 @@ typedef enum { WHITE, BLACK, BOTH } Color;
 typedef enum
 {
     W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
-    B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING
+    B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
+    NO_PC
 }
 Piece;
 
@@ -55,12 +56,12 @@ typedef struct
 {
     bb64     pcbb[12];              /* Occupancy bitboards for pieces */
     bb64     white, black, both;    /* Occupancy bitboards for colors */
-    int      side;                  /* Color to move                  */
-    int      enpassant;             /* En passants square             */
-    uint8_t  castling;              /* Castling rights bitmask        */
-    uint8_t  halfmove;              /* 50 move counter                */
-    uint16_t fullmove;              /* Move number                    */
     uint64_t zobrist;               /* Zobrist position hash          */
+    uint16_t fmcount;               /* Move number                    */
+    uint8_t  hmclock;               /* 50 move counter                */
+    uint8_t  castling;              /* Castling rights bitmask        */
+    uint8_t  side;                  /* Color to move                  */
+    uint8_t  enpassant;             /* En passants square             */
 }
 Position;
 

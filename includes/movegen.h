@@ -1,6 +1,8 @@
 #ifndef MOVEGEN_H
 #define MOVEGEN_H
 
+#include <stdio.h>
+
 #include "bitboard.h"
 
 /* Bitboards with rank i set */
@@ -56,6 +58,25 @@ static inline void decode(uint32_t encoding, int *src, int *dst, Piece *pc,
     *dbl    = (encoding & 0x00200000) >> 21;
     *en     = (encoding & 0x00400000) >> 22;
     *cstl   = (encoding & 0x00800000) >> 23;
+}
+
+static inline void print_move(uint32_t encoding)
+{
+    int   src    =  encoding & 0x0000003f;
+    int   dst    = (encoding & 0x00000fc0) >> 6;
+    Piece pc     = (encoding & 0x0000f000) >> 12;
+    Piece promo  = (encoding & 0x000f0000) >> 16;
+    bool  cap    = (encoding & 0x00100000) >> 20;
+    bool  dbl    = (encoding & 0x00200000) >> 21;
+    bool  en     = (encoding & 0x00400000) >> 22;
+    bool  cstl   = (encoding & 0x00800000) >> 23;
+
+    char buf1[3]; idxtosq(src, buf1);
+    char buf2[3]; idxtosq(dst, buf2);
+
+    printf("Move: %c%s%s%c %d%d%d%d\n", idxtopc(pc), buf1, buf2,
+                                  (promo == 0) ? ' ' : idxtopc(promo),
+                                  cap, dbl, en, cstl);
 }
 
 /* Decode a field given an encoding */

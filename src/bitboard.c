@@ -58,8 +58,8 @@ void print_board(const Position *pos)
     printf("      Side: %s\n", pos->side == WHITE ? "white" : "black");
 
     char ep[3];
-    if (pos->enpassant >= 0) { idxtosq(pos->enpassant, ep); }
-    printf(" Enpassant: %s\n", pos->enpassant >= 0 ? ep : "N/A");
+    if (pos->enpassant < 64) { idxtosq(pos->enpassant, ep); }
+    printf(" Enpassant: %s\n", pos->enpassant < 64 ? ep : "N/A");
 
     printf("  Castling: %c%c%c%c\n",
            (pos->castling & CASTLE_WK) ? 'K' : '-',
@@ -67,9 +67,9 @@ void print_board(const Position *pos)
            (pos->castling & CASTLE_BK) ? 'k' : '-',
            (pos->castling & CASTLE_BQ) ? 'q' : '-');
 
-    printf("  HM clock: %d\n", pos->halfmove);
+    printf("  HM clock: %d\n", pos->hmclock);
 
-    printf("  FM count: %d\n\n", pos->fullmove);
+    printf("  FM count: %d\n\n", pos->fmcount);
 }
 
 void reset_board(Position * pos)
@@ -78,8 +78,8 @@ void reset_board(Position * pos)
     pos->side = 0;
     pos->enpassant = none;
     pos->castling = 0;
-    pos->halfmove = 0;
-    pos->fullmove = 0;
+    pos->hmclock = 0;
+    pos->fmcount = 0;
     pos->zobrist = 0;
 }
 
@@ -181,7 +181,7 @@ bool parse_fen(const char *fen, Position *pos)
     char *endptr = NULL;
     long hm = strtol(ptr, &endptr, 10);
     if (endptr == ptr || hm < 0) return false;
-    pos->halfmove = (int)hm;
+    pos->hmclock = (int)hm;
     ptr = endptr;
     if (*ptr != ' ') return false;
     ptr++;
@@ -189,7 +189,7 @@ bool parse_fen(const char *fen, Position *pos)
     /* Set fullmove number */
     long fm = strtol(ptr, &endptr, 10);
     if (endptr == ptr || fm <= 0) return false;
-    pos->fullmove = (int)fm;
+    pos->fmcount = (int)fm;
     ptr = endptr;
 
     /* Skip trailing spaces */
