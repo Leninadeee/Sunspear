@@ -1,22 +1,18 @@
 #include <stdio.h>
 
 #include "attacks.h"
-#include "bitboard.h"
-#include "movegen.h"
-#include "perft.h"
+#include "types.h"
+#include "uci.h"
 
 int main(void)
 {
     printf("Initializing engine...\n\n");
 
     Position pos = {0};
-    MoveList ml  = {0};
-    bb64 bb = 0ULL;
-    print_bitboard(bb);
     init_leapers();
     init_sliders();
 
-    perft_driver();
+    uci_loop(&pos);
 
     return 0;
 }
