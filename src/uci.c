@@ -86,10 +86,13 @@ void search(Position *P, int depth)
 {
     uint32_t mv;
 
-    negamax(P, depth, 0, -INF, INF, &mv);
+    int eval = negamax(P, depth, 0, -INF, INF, &mv);
 
     char buf1[3]; idxtosq(dcdsrc(mv), buf1);
     char buf2[3]; idxtosq(dcddst(mv), buf2);
+
+    printf("info score cp %d depth %d nodes %ld\n", eval, depth, g_nodes);
+    g_nodes = 0;
     
     Piece promo = dcdpromo(mv);
     if (promo) printf("bestmove %s%s%c\n", buf1, buf2, (char)(idxtopc(promo) | 32));
