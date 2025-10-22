@@ -9,28 +9,30 @@ const char sym[] = {'P','N','B','R','Q','K','p','n','b','r','q','k'};
 const char promos[] = {'n','b','r','q'};
 
 static inline void emit_move(MoveList *M, int src, int dst, Piece pc,
-                             Piece promo, bool cap, bool dbl, bool enp,
-                             bool cstl)
+                             Piece promo, Piece target, bool cap, bool dbl,
+                             bool enp, bool cstl)
 {
-    add_move(M, encode(src, dst, pc, promo, cap, dbl, enp, cstl));
+    add_move(M, encode(src, dst, pc, promo, target, cap, dbl, enp, cstl));
 }
 
-static inline void emit_from_mask(GenMode mode, MoveList *M, int src,
-                                  bb64 mask, Piece pc, bb64 occ, bb64 them)
+static inline void emit_from_mask(GenMode mode, const Position *P, MoveList *M,
+                                  int src, bb64 mask, Piece pc, bb64 occ,
+                                  bb64 them)
 {
     bb64 quiets = mask & ~occ;
     bb64 caps   = mask &  them;
 
     while (caps) {
         int dst = poplsb(&caps);
-        emit_move(M, src, dst, pc, 0, 1, 0, 0, 0);
+        Piece target = get_target(P, dst);
+        emit_move(M, src, dst, pc, 0, target, 1, 0, 0, 0);
     }
 
     if (mode == GEN_CAPTURES) return;
 
     while (quiets) {
         int dst = poplsb(&quiets);
-        emit_move(M, src, dst, pc, 0, 0, 0, 0, 0);
+        emit_move(M, src, dst, pc, 0, NO_PC, 0, 0, 0, 0);
     }
 }
 
@@ -53,10 +55,10 @@ static inline void gen_pawn_pushes(const Position *P, MoveList *M, Color c)
         int dst = poplsb(&p);
         int src = (c == WHITE) ? dst + 8 : dst - 8;
 
-        emit_move(M, src, dst, pc, W_KNIGHT + dx, 0, 0, 0, 0);
-        emit_move(M, src, dst, pc, W_BISHOP + dx, 0, 0, 0, 0);
-        emit_move(M, src, dst, pc, W_ROOK   + dx, 0, 0, 0, 0);
-        emit_move(M, src, dst, pc, W_QUEEN  + dx, 0, 0, 0, 0);
+        emit_move(M, src, dst, pc, W_KNIGHT + dx, NO_PC, 0, 0, 0, 0);
+        emit_move(M, src, dst, pc, W_BISHOP + dx, NO_PC, 0, 0, 0, 0);
+        emit_move(M, src, dst, pc, W_ROOK   + dx, NO_PC, 0, 0, 0, 0);
+        emit_move(M, src, dst, pc, W_QUEEN  + dx, NO_PC, 0, 0, 0, 0);
     }
 
     /* Non-promotion single pawn pushes*/
@@ -65,7 +67,7 @@ static inline void gen_pawn_pushes(const Position *P, MoveList *M, Color c)
     {
         int dst = poplsb(&p);
         int src = (c == WHITE) ? dst + 8 : dst - 8;
-        emit_move(M, src, dst, pc, 0, 0, 0, 0, 0);
+        emit_move(M, src, dst, pc, 0, NO_PC, 0, 0, 0, 0);
     }
 
     /* Double pawn pushes */
@@ -79,7 +81,7 @@ static inline void gen_pawn_pushes(const Position *P, MoveList *M, Color c)
     {
         int dst = poplsb(&p);
         int src = (c == WHITE) ? dst + 16 : dst - 16;
-        emit_move(M, src, dst, pc, 0, 0, 1, 0, 0);
+        emit_move(M, src, dst, pc, 0, NO_PC, 0, 1, 0, 0);
     }
 }
 
@@ -99,10 +101,11 @@ static inline void gen_pawn_captures(const Position *P, MoveList *M, Color c)
         bb64 promo = (c==WHITE) ? (caps & RANK_8) : (caps & RANK_1);
         for (bb64 p = promo; p;) {
             int dst = poplsb(&p);
-            emit_move(M, src, dst, pc, W_KNIGHT + dx, 1, 0, 0, 0);
-            emit_move(M, src, dst, pc, W_BISHOP + dx, 1, 0, 0, 0);
-            emit_move(M, src, dst, pc, W_ROOK   + dx, 1, 0, 0, 0);
-            emit_move(M, src, dst, pc, W_QUEEN  + dx, 1, 0, 0, 0);
+            Piece target = get_target(P, dst);
+            emit_move(M, src, dst, pc, W_KNIGHT + dx, target, 1, 0, 0, 0);
+            emit_move(M, src, dst, pc, W_BISHOP + dx, target, 1, 0, 0, 0);
+            emit_move(M, src, dst, pc, W_ROOK   + dx, target, 1, 0, 0, 0);
+            emit_move(M, src, dst, pc, W_QUEEN  + dx, target, 1, 0, 0, 0);
             
         }
 
@@ -110,16 +113,17 @@ static inline void gen_pawn_captures(const Position *P, MoveList *M, Color c)
         caps &= ~promo;
         for (bb64 p = caps; p;) {
             int dst = poplsb(&p);
-            emit_move(M, src, dst, pc, 0, 1, 0, 0, 0);
+            Piece target = get_target(P, dst);
+            emit_move(M, src, dst, pc, 0, target, 1, 0, 0, 0);
         }
 
         /* En passant captures */
         if (P->enpassant != none)
         {
-            bb64 epmask = ptable[c][src] & (1ULL << P->enpassant);
-            if (epmask) {
-                int dst = lsb(epmask);
-                emit_move(M, src, dst, pc, 0, 1, 0, 1, 0);
+            bb64 enpmask = ptable[c][src] & (1ULL << P->enpassant);
+            if (enpmask) {
+                int dst = lsb(enpmask);
+                emit_move(M, src, dst, pc, 0, NO_PC, 1, 0, 1, 0);
             }
         }
     }
@@ -135,7 +139,7 @@ static inline void gen_king_moves(GenMode mode, const Position* P, MoveList *M,
     int   src  = lsb(P->pcbb[(c == WHITE) ? W_KING : B_KING]);
 
     bb64  mask = ktable[src] & ~us;
-    emit_from_mask(mode, M, src, mask, pc, occ, them);
+    emit_from_mask(mode, P, M, src, mask, pc, occ, them);
 }
 
 static inline void gen_castles(const Position* P, MoveList *M, Color c)
@@ -151,7 +155,7 @@ static inline void gen_castles(const Position* P, MoveList *M, Color c)
                 !checksquare(P, BLACK, e1) &&
                 !checksquare(P, BLACK, f1))
             {
-                emit_move(M, e1, g1, pc, 0, 0, 0, 0, 1);
+                emit_move(M, e1, g1, pc, 0, NO_PC, 0, 0, 0, 1);
             }
         }
         if (P->castling & CASTLE_WQ)
@@ -160,7 +164,7 @@ static inline void gen_castles(const Position* P, MoveList *M, Color c)
                 !checksquare(P, BLACK, e1) &&
                 !checksquare(P, BLACK, d1))
             {
-                emit_move(M, e1, c1, pc, 0, 0, 0, 0, 1);
+                emit_move(M, e1, c1, pc, 0, NO_PC, 0, 0, 0, 1);
             }
         }
     }
@@ -172,7 +176,7 @@ static inline void gen_castles(const Position* P, MoveList *M, Color c)
                 !checksquare(P, WHITE, e8) &&
                 !checksquare(P, WHITE, f8))
             {
-                emit_move(M, e8, g8, pc, 0, 0, 0, 0, 1);
+                emit_move(M, e8, g8, pc, 0, NO_PC, 0, 0, 0, 1);
             }
         }
         if (P->castling & CASTLE_BQ)
@@ -181,7 +185,7 @@ static inline void gen_castles(const Position* P, MoveList *M, Color c)
                 !checksquare(P, WHITE, e8) &&
                 !checksquare(P, WHITE, d8))
             {
-                emit_move(M, e8, c8, pc, 0, 0, 0, 0, 1);
+                emit_move(M, e8, c8, pc, 0, NO_PC, 0, 0, 0, 1);
             }
         }
     }
@@ -200,7 +204,7 @@ static inline void gen_knight_moves(GenMode mode, const Position *P,
     {
         int src = poplsb(&x);
         bb64 mask = ntable[src] & ~us;
-        emit_from_mask(mode, M, src, mask, pc, occ, them);
+        emit_from_mask(mode, P, M, src, mask, pc, occ, them);
     }
 
 }
@@ -218,7 +222,7 @@ static inline void gen_bishop_moves(GenMode mode, const Position *P,
     {
         int src = poplsb(&x);
         bb64 mask = bishop_attacks_pext(src, occ) & ~us;
-        emit_from_mask(mode, M, src, mask, pc, occ, them);
+        emit_from_mask(mode, P, M, src, mask, pc, occ, them);
     }
 
 }
@@ -236,7 +240,7 @@ static inline void gen_rook_moves(GenMode mode, const Position *P, MoveList *M,
     {
         int src = poplsb(&x);
         bb64 mask = rook_attacks_pext(src, occ) & ~us;
-        emit_from_mask(mode, M, src, mask, pc, occ, them);
+        emit_from_mask(mode, P, M, src, mask, pc, occ, them);
     }
 
 }
@@ -254,7 +258,7 @@ static inline void gen_queen_moves(GenMode mode, const Position *P,
     {
         int src = poplsb(&x);
         bb64 mask = queen_attacks_pext(src, occ) & ~us;
-        emit_from_mask(mode, M, src, mask, pc, occ, them);
+        emit_from_mask(mode, P, M, src, mask, pc, occ, them);
     }
 
 }
@@ -277,23 +281,17 @@ bool make_move(Position *P, uint32_t encoding)
 {
     Position prev = *P;
     int src, dst;
-    Piece pc, promo;
+    Piece pc, promo, target;
     bool cap, dbl, enp, cstl;
-    decode(encoding, &src, &dst, &pc, &promo, &cap, &dbl, &enp, &cstl);
+    decode(encoding, &src, &dst, &pc, &promo, &target,
+                     &cap, &dbl, &enp, &cstl);
 
     /* Moves initiating piece */
     clrbit(P->pcbb[pc], src);
     setbit(P->pcbb[pc], dst);
 
     if (cap) {
-        int dx = (P->side == WHITE) ? 6 : 0;
-
-        for (int i = W_PAWN + dx; i <= W_KING + dx; i++)
-        {
-            if (getbit(P->pcbb[i], dst)) {
-                clrbit(P->pcbb[i], dst); break;
-            }
-        }
+        clrbit(P->pcbb[target], dst);
     }
 
     if (promo) {

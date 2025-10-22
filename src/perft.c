@@ -38,7 +38,7 @@ void perft_test(const char *fen, const ull *expected)
         ull actual = perft(&pos, depth);
         ull time_elapsed = gettime() - start;
         char *res  = (actual == expected[depth]) ? "PASS" : "FAIL";
-        printf("%s  Depth=%d  Actual=%-9llu  Expected=%-9llu  Time: %5llums\n",
+        printf("%s  Depth=%d  Actual=%-10llu  Expected=%-10llu  Time: %6llums\n",
                 res, depth, actual, expected[depth], time_elapsed);
     }
     printf("\n");
