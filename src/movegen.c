@@ -61,7 +61,7 @@ static inline void gen_pawn_pushes(const Position *P, MoveList *M, Color c)
         emit_move(M, src, dst, pc, W_QUEEN  + dx, NO_PC, 0, 0, 0, 0);
     }
 
-    /* Non-promotion single pawn pushes*/
+    /* Non-promotion single pawn pushes */
     single &= ~promo;
     for (bb64 p = single; p;)
     {
@@ -97,7 +97,7 @@ static inline void gen_pawn_captures(const Position *P, MoveList *M, Color c)
         int src = poplsb(&x);
         bb64 caps = ptable[c][src] & them;
 
-        /* Captures to promotion*/
+        /* Captures to promotion */
         bb64 promo = (c==WHITE) ? (caps & RANK_8) : (caps & RANK_1);
         for (bb64 p = promo; p;) {
             int dst = poplsb(&p);
@@ -123,7 +123,7 @@ static inline void gen_pawn_captures(const Position *P, MoveList *M, Color c)
             bb64 enpmask = ptable[c][src] & (1ULL << P->enpassant);
             if (enpmask) {
                 int dst = lsb(enpmask);
-                emit_move(M, src, dst, pc, 0, NO_PC, 1, 0, 1, 0);
+                emit_move(M, src, dst, pc, 0, pc^1, 1, 0, 1, 0);
             }
         }
     }
@@ -361,7 +361,9 @@ bool make_move(Position *P, uint32_t encoding)
 void add_move(MoveList *M, uint32_t move)
 {
     /* Assumes nmoves can never go above MAX_MOVES */
-    M->moves[(M->nmoves)++] = move;
+    M->moves[M->nmoves] = move;
+    M->scores[M->nmoves] = score_move(move);
+    M->nmoves++;
 }
 
 void print_moves(const MoveList *M)

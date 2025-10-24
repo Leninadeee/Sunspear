@@ -58,13 +58,13 @@ void parse_position(Position *P, char *cmd) {
             fen += 4;
             char *mvstart = strstr(fen, " moves");
             size_t len = mvstart ? (size_t)(mvstart - fen) : strlen(fen);
-            char fenbuf[128];
+            char fenbuf[256];
             if (len >= sizeof fenbuf) len = sizeof(fenbuf) - 1;
             memcpy(fenbuf, fen, len);
             fenbuf[len] = '\0';
 
             memset(P, 0, sizeof *P);
-            parse_fen(fenbuf, P);
+            assert(parse_fen(fenbuf, P));
         }
     }
 
@@ -84,9 +84,16 @@ void parse_position(Position *P, char *cmd) {
 
 void search(Position *P, int depth)
 {
-    uint32_t mv;
+    uint32_t mv = 0;
 
     int eval = negamax(P, depth, 0, -INF, INF, &mv);
+
+    if (mv == 0) {
+        printf("info score cp %d depth %d nodes %ld\n", eval, depth, g_nodes);
+        g_nodes = 0;
+        printf("bestmove 0000\n");
+        return;
+    }
 
     char buf1[3]; idxtosq(dcdsrc(mv), buf1);
     char buf2[3]; idxtosq(dcddst(mv), buf2);
@@ -95,7 +102,7 @@ void search(Position *P, int depth)
     g_nodes = 0;
     
     Piece promo = dcdpromo(mv);
-    if (promo) printf("bestmove %s%s%c\n", buf1, buf2, (char)(idxtopc(promo) | 32));
+    if (promo) printf("bestmove %s%s%c\n", buf1, buf2, (idxtopc(promo) | 32));
     else       printf("bestmove %s%s\n", buf1, buf2);
 }
 
@@ -106,8 +113,11 @@ void parse_go(Position *P, char *cmd)
 
     if ((ptr = strstr(cmd, "depth")))
         depth = atoi(ptr + 6);
+
+    /* Temporary set depth */
+    if (!depth) depth = 6;
     
-    search(P, MAX(depth, 6));
+    search(P, 1);
 }
 
 void uci_loop(Position *P)

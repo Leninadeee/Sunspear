@@ -19,7 +19,7 @@ ull perft(Position *P, int depth)
 
     for (int i = 0; i < mov.nmoves; i++)
     {
-        if (!make_move(P, mov.moves[i])) {*P = prev; continue; }
+        if (!make_move(P, mov.moves[i])) continue;
         nodes += perft(P, depth - 1);
         *P = prev;
     }

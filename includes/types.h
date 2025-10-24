@@ -68,6 +68,7 @@ Position;
 typedef struct
 {
     uint32_t moves[MAX_MOVES];
+    uint32_t scores[MAX_MOVES];
     int      nmoves;
 }
 MoveList;
