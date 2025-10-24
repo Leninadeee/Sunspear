@@ -193,7 +193,7 @@ bool parse_fen(const char *fen, Position *pos)
     ptr = endptr;
 
     /* Skip trailing spaces */
-    while (*ptr == ' ') ptr++;
+    while (isspace((unsigned char)*ptr)) ptr++;
 
     if (*ptr != '\0') return false;
 
