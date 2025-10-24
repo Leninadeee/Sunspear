@@ -8,6 +8,15 @@
 #include "types.h"
 #include "uci.h"
 
+void uci_print_move(uint32_t mv)
+{
+    char buf1[3]; idxtosq(dcdsrc(mv), buf1);
+    char buf2[3]; idxtosq(dcddst(mv), buf2);
+    Piece promo = dcdpromo(mv);
+    if (promo) printf("%s%s%c", buf1, buf2, (idxtopc(promo) | 32));
+    else       printf("%s%s", buf1, buf2);
+}
+
 uint32_t parse_move(const Position *P, const char *mvstr)
 {
     if (!mvstr || !mvstr[0] || !mvstr[1] || !mvstr[2] || !mvstr[3]) return 0;
@@ -82,13 +91,12 @@ void parse_position(Position *P, char *cmd) {
 }
 
 
-void search(Position *P, QuietTable *qt, int depth)
+void search(Position *P, OrderTables *ord, int depth)
 {
-    uint32_t mv = 0;
+    memset(ord, 0, sizeof(OrderTables));
 
-    memset(qt, 0, sizeof(QuietTable));
-
-    int eval = negamax(P, depth, 0, -INF, INF, qt, &mv);
+    int eval = negamax(P, depth, 0, -INF, INF, ord);
+    uint32_t mv = ord->pv_table[0][0];
 
     if (mv == 0) {
         printf("info score cp %d depth %d nodes %ld\n", eval, depth, g_nodes);
@@ -100,18 +108,22 @@ void search(Position *P, QuietTable *qt, int depth)
     char buf1[3]; idxtosq(dcdsrc(mv), buf1);
     char buf2[3]; idxtosq(dcddst(mv), buf2);
 
-    printf("info score cp %d depth %d nodes %ld\n", eval, depth, g_nodes);
+    printf("info score cp %d depth %d nodes %ld pv ", eval, depth, g_nodes);
+
+    for (int i = 0; i < ord->pv_len[0]; i++) {
+        uci_print_move(ord->pv_table[0][i]); printf(" ");
+    }
+    printf("\n");
+
     g_nodes = 0;
     
-    Piece promo = dcdpromo(mv);
-    if (promo) printf("bestmove %s%s%c\n", buf1, buf2, (idxtopc(promo) | 32));
-    else       printf("bestmove %s%s\n", buf1, buf2);
+    printf("bestmove "); uci_print_move(mv); printf("\n");
 }
 
-void parse_go(Position *P, QuietTable *qt, char *cmd)
+void parse_go(Position *P, OrderTables *ord, char *cmd)
 {
     char *ptr;
-    int depth = 6;
+    int depth = 7;
 
     if ((ptr = strstr(cmd, "depth")))
         depth = atoi(ptr + 6);
@@ -119,10 +131,10 @@ void parse_go(Position *P, QuietTable *qt, char *cmd)
     /* Temporary set depth */
     if (!depth) depth = 6;
     
-    search(P, qt, depth);
+    search(P, ord, depth);
 }
 
-void uci_loop(Position *P, QuietTable *qt)
+void uci_loop(Position *P, OrderTables *ord)
 {
     setbuf(stdin, NULL);
     setbuf(stdout, NULL);
@@ -148,7 +160,7 @@ void uci_loop(Position *P, QuietTable *qt)
             parse_position(P, "position startpos");
         }
         else if (!strncmp(buf, "go", 2)) {
-            parse_go(P, qt, buf);
+            parse_go(P, ord, buf);
         }
         else if (!strncmp(buf, "uci", 3)) {
             printf("id name stackphish\n");

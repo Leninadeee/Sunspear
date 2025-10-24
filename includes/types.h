@@ -78,7 +78,9 @@ typedef struct
 {
     uint32_t klr_table[2][MAX_PLY];
     uint32_t hist_table[12][64];
+    uint32_t pv_table[MAX_PLY][MAX_PLY];
+    int pv_len[MAX_PLY];
 }
-QuietTable;
+OrderTables;
 
 #endif /* TYPES_H */

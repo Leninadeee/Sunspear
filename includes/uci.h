@@ -5,7 +5,7 @@
 
 extern uint32_t parse_move(const Position *, const char *);
 extern void parse_position(Position *, char *);
-extern void parse_go(Position *, QuietTable *, char *);
-extern void uci_loop(Position *, QuietTable *);
+extern void parse_go(Position *, OrderTables *, char *);
+extern void uci_loop(Position *, OrderTables *);
 
-#endif
+#endif /* UCI_H */
