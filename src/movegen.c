@@ -362,7 +362,6 @@ void add_move(MoveList *M, uint32_t move)
 {
     /* Assumes nmoves can never go above MAX_MOVES */
     M->moves[M->nmoves] = move;
-    M->scores[M->nmoves] = score_move(move);
     M->nmoves++;
 }
 

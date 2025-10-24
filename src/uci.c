@@ -82,11 +82,13 @@ void parse_position(Position *P, char *cmd) {
 }
 
 
-void search(Position *P, int depth)
+void search(Position *P, QuietTable *qt, int depth)
 {
     uint32_t mv = 0;
 
-    int eval = negamax(P, depth, 0, -INF, INF, &mv);
+    memset(qt, 0, sizeof(QuietTable));
+
+    int eval = negamax(P, depth, 0, -INF, INF, qt, &mv);
 
     if (mv == 0) {
         printf("info score cp %d depth %d nodes %ld\n", eval, depth, g_nodes);
@@ -106,7 +108,7 @@ void search(Position *P, int depth)
     else       printf("bestmove %s%s\n", buf1, buf2);
 }
 
-void parse_go(Position *P, char *cmd)
+void parse_go(Position *P, QuietTable *qt, char *cmd)
 {
     char *ptr;
     int depth = 6;
@@ -117,10 +119,10 @@ void parse_go(Position *P, char *cmd)
     /* Temporary set depth */
     if (!depth) depth = 6;
     
-    search(P, 1);
+    search(P, qt, depth);
 }
 
-void uci_loop(Position *P)
+void uci_loop(Position *P, QuietTable *qt)
 {
     setbuf(stdin, NULL);
     setbuf(stdout, NULL);
@@ -146,7 +148,7 @@ void uci_loop(Position *P)
             parse_position(P, "position startpos");
         }
         else if (!strncmp(buf, "go", 2)) {
-            parse_go(P, buf);
+            parse_go(P, qt, buf);
         }
         else if (!strncmp(buf, "uci", 3)) {
             printf("id name stackphish\n");

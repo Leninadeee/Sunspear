@@ -9,7 +9,7 @@
 long g_nodes;
 
 int negamax(Position *P, int depth, int ply, int alpha, int beta,
-            uint32_t *root)
+            QuietTable *qt, uint32_t *root)
 {   
     if (depth == 0)
         return quiesce(P, alpha, beta);
@@ -22,27 +22,36 @@ int negamax(Position *P, int depth, int ply, int alpha, int beta,
 
     MoveList ml = (MoveList){0};
     gen_all(P, &ml, GEN_ALL);
+    score_all(&ml, qt, ply);
 
     uint32_t bestmv = 0;
 
     for (int i = 0; i < ml.nmoves; i++) {
         Position prev = *P;
-        //get_mvvlva_move(&ml, i);
+        get_ordered_move(&ml, i);
         if (!make_move(P, ml.moves[i])) continue;
         gameover = false;
 
-        int eval = -negamax(P, depth - 1, ply + 1, -beta, -alpha, NULL);
+        int eval = -negamax(P, depth - 1, ply + 1, -beta, -alpha, qt, NULL);
 
         *P = prev;
 
-        if (eval >= beta)
+        if (eval >= beta) {
+            if (dcdcap(ml.moves[i]) == false) {
+                qt->klr_table[1][ply] = qt->klr_table[0][ply];
+                qt->klr_table[0][ply] = ml.moves[i];
+            }
             return beta;
+        }
 
         if (eval > alpha) {
+            if (dcdcap(ml.moves[i]) == false)
+                qt->hist_table[dcdpc(ml.moves[i])][dcddst(ml.moves[i])] += depth;
+
             alpha = eval;
-            if (ply == 0) {
+
+            if (ply == 0)
                 bestmv = ml.moves[i];
-            }
         }
     }
 
@@ -68,10 +77,11 @@ int quiesce(Position *P, int alpha, int beta)
 
     MoveList ml = (MoveList){0};
     gen_all(P, &ml, GEN_CAPTURES);
+    score_all(&ml, NULL, -1);
 
     for (int i = 0; i < ml.nmoves; i++) {
         Position prev = *P;
-        //get_mvvlva_move(&ml, i);
+        get_ordered_move(&ml, i);
         if (!make_move(P, ml.moves[i])) continue;
 
         int eval = -quiesce(P, -beta, -alpha);

@@ -3,7 +3,8 @@
 
 #include <stdint.h>
 
-#define MAX_MOVES 256
+#define MAX_MOVES   256
+#define MAX_PLY     128
 
 typedef uint64_t bb64;
 
@@ -69,8 +70,15 @@ typedef struct
 {
     uint32_t moves[MAX_MOVES];
     uint32_t scores[MAX_MOVES];
-    int      nmoves;
+    uint8_t  nmoves;
 }
 MoveList;
+
+typedef struct
+{
+    uint32_t klr_table[2][MAX_PLY];
+    uint32_t hist_table[12][64];
+}
+QuietTable;
 
 #endif /* TYPES_H */

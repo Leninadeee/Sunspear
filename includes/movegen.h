@@ -166,14 +166,4 @@ static inline Piece get_target(const Position *P, int dst)
     return NO_PC;
 }
 
-static inline int score_move(uint32_t mv)
-{
-    if (!dcdcap(mv)) return 0;
-
-    int v = PTYPE(dcdpc(mv));
-    int a = PTYPE(dcdtarget(mv));
-
-    return 100 * (a + 1) + (5 - v);
-}
-
 #endif /* MOVEGEN_H */
