@@ -97,14 +97,21 @@ void search(Position *P, OrderTables *ord, int depth)
 
     int eval;
     uint32_t mv;
-
+    g_nodes = 0;
+    
     memset(ord, 0, sizeof(OrderTables));
 
     for (int curr_depth = 1; curr_depth <= depth; curr_depth++)
     {
-        g_nodes = 0;
+        //g_nodes = 0;
+        memset(ord->follow_pv, 0, MAX_PLY);
+        memset(ord->score_pv, 0, MAX_PLY);
+        ord->follow_pv[0] = true;
+
         eval = negamax(P, curr_depth, 0, -INF, INF, ord);
-        printf("info score cp %d depth %d nodes %ld pv ", eval, curr_depth, g_nodes);
+
+        printf("info score cp %d depth %d nodes %ld pv ", eval, curr_depth,
+                                                          g_nodes);
 
         for (int i = 0; i < ord->pv_len[0]; i++) {
             uci_print_move(ord->pv_table[0][i]); printf(" ");
@@ -117,7 +124,6 @@ void search(Position *P, OrderTables *ord, int depth)
 
     if (mv == 0) {
         printf("info score cp %d depth %d nodes %ld\n", eval, depth, g_nodes);
-        g_nodes = 0;
         printf("bestmove 0000\n");
         return;
     }

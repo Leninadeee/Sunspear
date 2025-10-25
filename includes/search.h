@@ -4,6 +4,7 @@
 #include <assert.h>
 
 #include "types.h"
+#include "uci.h"
 
 #define MAX(a, b)   ((a) > (b) ? (a) : (b))
 #define MIN(a, b)   ((a) < (b) ? (a) : (b))
@@ -12,23 +13,53 @@
 #define INF     50000
 #define MATE    49000
 
-#define CAP_OFFSET  (1 << 30)
-#define KLR_OFFSET  (1 << 29)
+#define NFULL_DEPTHS    4
+#define LMR_LIMIT       3
+
+#define PV_OFFSET   (1 << 30)
+#define CAP_OFFSET  (1 << 29)
+#define KLR_OFFSET  (1 << 28)
 
 extern long g_nodes;
 
 extern int negamax(Position *, int, int , int, int, OrderTables *);
 extern int quiesce(Position *, int, int);
 
-static inline int score_move(OrderTables *ord, int ply, uint32_t mv)
+static inline void enable_pv_scoring(OrderTables *ord, MoveList *ml, int ply)
 {
+    ord->follow_pv[ply] = false;
+    ord->score_pv[ply]  = false;
+
+    uint32_t target = ord->pv_table[0][ply];
+    if (!target) return;
+
+    for (int i = 0; i < ml->nmoves; i++)
+    {
+        if (ml->moves[i] == target) {
+            ord->follow_pv[ply] = true;
+            ord->score_pv[ply]  = true;
+            break;
+        }
+    }
+}
+
+
+static inline uint32_t score_move(OrderTables *ord, int ply, uint32_t mv)
+{
+    if (ply >= 0 && ord->score_pv[ply] == true) {
+        if (ord->pv_table[0][ply] == mv) {
+            ord->score_pv[ply] = false;
+            return PV_OFFSET;
+        }
+    }
+
     if (dcdcap(mv) == true) {
         int a = PTYPE(dcdpc(mv));
         int v = PTYPE(dcdtarget(mv));
         return 100 * (v + 1) + (5 - a) + CAP_OFFSET;
     }
-    else if (ply >= 0 && ord) {
-        return 0;
+    
+    if (ply >= 0 && ord) {
         if (ord->klr_table[0][ply] == mv)
             return KLR_OFFSET;
         else if (ord->klr_table[1][ply] == mv)

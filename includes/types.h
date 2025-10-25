@@ -80,6 +80,8 @@ typedef struct
     uint32_t hist_table[12][64];
     uint32_t pv_table[MAX_PLY][MAX_PLY];
     int pv_len[MAX_PLY];
+    bool follow_pv[MAX_PLY]; /* Flag to follow pv or not */
+    bool score_pv[MAX_PLY]; /* Flag to score pv or not */
 }
 OrderTables;
 
