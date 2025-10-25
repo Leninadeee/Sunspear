@@ -93,10 +93,27 @@ void parse_position(Position *P, char *cmd) {
 
 void search(Position *P, OrderTables *ord, int depth)
 {
+    assert(depth > 0);
+
+    int eval;
+    uint32_t mv;
+
     memset(ord, 0, sizeof(OrderTables));
 
-    int eval = negamax(P, depth, 0, -INF, INF, ord);
-    uint32_t mv = ord->pv_table[0][0];
+    for (int curr_depth = 1; curr_depth <= depth; curr_depth++)
+    {
+        g_nodes = 0;
+        eval = negamax(P, curr_depth, 0, -INF, INF, ord);
+        printf("info score cp %d depth %d nodes %ld pv ", eval, curr_depth, g_nodes);
+
+        for (int i = 0; i < ord->pv_len[0]; i++) {
+            uci_print_move(ord->pv_table[0][i]); printf(" ");
+        }
+
+        printf("\n");
+    }
+    
+    mv = ord->pv_table[0][0];
 
     if (mv == 0) {
         printf("info score cp %d depth %d nodes %ld\n", eval, depth, g_nodes);
@@ -107,15 +124,6 @@ void search(Position *P, OrderTables *ord, int depth)
 
     char buf1[3]; idxtosq(dcdsrc(mv), buf1);
     char buf2[3]; idxtosq(dcddst(mv), buf2);
-
-    printf("info score cp %d depth %d nodes %ld pv ", eval, depth, g_nodes);
-
-    for (int i = 0; i < ord->pv_len[0]; i++) {
-        uci_print_move(ord->pv_table[0][i]); printf(" ");
-    }
-    printf("\n");
-
-    g_nodes = 0;
     
     printf("bestmove "); uci_print_move(mv); printf("\n");
 }

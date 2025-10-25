@@ -12,8 +12,8 @@
 #define INF     50000
 #define MATE    49000
 
-#define CAP_OFFSET   (1 << 30)
-#define KLR_OFFSET   (1 << 29)
+#define CAP_OFFSET  (1 << 30)
+#define KLR_OFFSET  (1 << 29)
 
 extern long g_nodes;
 
