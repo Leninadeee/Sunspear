@@ -2,6 +2,7 @@
 #define SEARCH_H
 
 #include <assert.h>
+#include <windows.h>
 
 #include "types.h"
 #include "uci.h"
@@ -20,6 +21,8 @@
 #define PV_OFFSET   (1 << 30)
 #define CAP_OFFSET  (1 << 29)
 #define KLR_OFFSET  (1 << 28)
+
+#define TIME_CHECK_MASK 0x7ff
 
 extern long g_nodes;
 
@@ -96,6 +99,29 @@ static inline void get_ordered_move(MoveList *ml, int i)
         ml->scores[bestidx] = ml->scores[i];
         ml->scores[i] = tempsc;
     }
+}
+
+static uint64_t now_ms(void)
+{
+    return GetTickCount64(); 
+}
+
+static inline void time_check(void) {
+    if ((!g_tc.enabled && !g_tc.node_limit) || g_tc.infinite || g_tc.ponder)
+        return;
+
+    if ((g_nodes & TIME_CHECK_MASK) != 0) return;
+
+    if (g_tc.node_limit && (uint64_t)g_nodes >= g_tc.node_limit) {
+        g_tc.stop_now = true;
+        return;
+    }
+
+    if (!g_tc.enabled) return;
+
+    uint64_t elapsed = now_ms() - g_tc.start_ms;
+    if (!g_tc.abort_iter && elapsed >= g_tc.soft_ms) g_tc.abort_iter = true;
+    if (!g_tc.stop_now  && elapsed >= g_tc.hard_ms)  g_tc.stop_now   = true;
 }
 
 #endif /* SEARCH_H */

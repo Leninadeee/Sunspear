@@ -11,6 +11,10 @@ long g_nodes;
 int negamax(Position *P, int depth, int ply, int alpha, int beta,
             OrderTables *ord)
 {
+    time_check();
+    if (g_tc.stop_now)
+        return alpha;
+
     ord->pv_len[ply] = ply;
     
     if (depth == 0) {
@@ -122,6 +126,10 @@ int negamax(Position *P, int depth, int ply, int alpha, int beta,
 int quiesce(Position *P, int alpha, int beta)
 {
     g_nodes++;
+
+    time_check();
+    if (g_tc.stop_now)
+        return alpha;
 
     int static_eval = main_eval(P);
 

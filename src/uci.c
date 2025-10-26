@@ -8,6 +8,8 @@
 #include "types.h"
 #include "uci.h"
 
+TimeCntl g_tc;
+
 void uci_print_move(uint32_t mv)
 {
     char buf1[3]; idxtosq(dcdsrc(mv), buf1);
@@ -19,7 +21,8 @@ void uci_print_move(uint32_t mv)
 
 uint32_t parse_move(const Position *P, const char *mvstr)
 {
-    if (!mvstr || !mvstr[0] || !mvstr[1] || !mvstr[2] || !mvstr[3]) return 0;
+    if (!mvstr || !mvstr[0] || !mvstr[1] || !mvstr[2] || !mvstr[3])
+        return 0;
 
     const int src = (mvstr[0] - 'a') + (8 - (mvstr[1] - '0')) * 8;
     const int dst = (mvstr[2] - 'a') + (8 - (mvstr[3] - '0')) * 8;
@@ -94,58 +97,144 @@ void parse_position(Position *P, char *cmd) {
 void search(Position *P, OrderTables *ord, int depth)
 {
     assert(depth > 0);
-
     int eval;
-    uint32_t mv;
-    //g_nodes = 0;
     
     memset(ord, 0, sizeof(OrderTables));
-
-    for (int curr_depth = 1; curr_depth <= depth; curr_depth++)
+    for (int d = 1; d <= depth; d++)
     {
         g_nodes = 0;
         memset(ord->follow_pv, 0, MAX_PLY);
-        memset(ord->score_pv, 0, MAX_PLY);
+        memset(ord->score_pv,  0, MAX_PLY);
         ord->follow_pv[0] = true;
 
-        eval = negamax(P, curr_depth, 0, -INF, INF, ord);
+        g_tc.abort_iter = false;
 
-        printf("info score cp %d depth %d nodes %ld pv ", eval, curr_depth,
-                                                          g_nodes);
+        eval = negamax(P, d, 0, -INF, INF, ord);
 
+        printf("info score cp %d depth %d nodes %ld pv ", eval, d, g_nodes);
         for (int i = 0; i < ord->pv_len[0]; i++) {
             uci_print_move(ord->pv_table[0][i]); printf(" ");
         }
-
         printf("\n");
-    }
-    
-    mv = ord->pv_table[0][0];
 
-    if (mv == 0) {
-        printf("info score cp %d depth %d nodes %ld\n", eval, depth, g_nodes);
+        if (g_tc.abort_iter || g_tc.stop_now) break;
+    }
+
+    uint32_t mv = ord->pv_table[0][0];
+    if (!mv) {
         printf("bestmove 0000\n");
+        return; 
+    }
+    printf("bestmove "); uci_print_move(mv); printf("\n");
+}
+
+
+void parse_go_tokens(const char *s, GoParams *gp)
+{
+    memset(gp, 0, sizeof *gp);
+
+    while (*s) {
+        int d;
+        uint64_t u;
+        if (sscanf(s, " wtime %llu", &u) == 1) {
+            gp->wtime = u; gp->f_wtime = 1; 
+        }
+        else if (sscanf(s, " btime %llu", &u) == 1) {
+            gp->btime = u; gp->f_btime = 1;
+        }
+        else if (sscanf(s, " winc %llu",  &u) == 1) {
+            gp->winc = u; gp->f_winc = 1;
+        }
+        else if (sscanf(s, " binc %llu",  &u) == 1) {
+            gp->binc = u; gp->f_binc = 1;
+        }
+        else if (sscanf(s, " movetime %llu", &u) == 1) {
+            gp->movetime = u;
+        }
+        else if (sscanf(s, " nodes %llu", &u) == 1) {
+            gp->nodes = u;
+        }
+        else if (sscanf(s, " depth %d", &d) == 1) {
+            gp->depth = d;
+        }
+        else if (sscanf(s, " movestogo %d", &d) == 1) {
+            gp->movestogo = d; gp->f_mtg = 1;
+        }
+        else if (strstr(s, " infinite") == s) {
+            gp->infinite = true;
+        }
+        else if (strstr(s, " ponder") == s) {
+            gp->ponder = true;
+        }
+
+        while (*s && *s!=' ') s++;
+        while (*s==' ') s++;
+    }
+}
+
+void time_setup(const GoParams *gp, const Position *P)
+{
+    memset(&g_tc, 0, sizeof g_tc);
+
+    g_tc.node_limit = gp->nodes;
+    g_tc.infinite   = gp->infinite;
+    g_tc.ponder     = gp->ponder;
+    g_tc.start_ms   = now_ms();
+
+    if (gp->movetime) {
+        g_tc.enabled = true;
+        g_tc.soft_ms = gp->movetime;
+        g_tc.hard_ms = gp->movetime;
         return;
     }
 
-    char buf1[3]; idxtosq(dcdsrc(mv), buf1);
-    char buf2[3]; idxtosq(dcddst(mv), buf2);
-    
-    printf("bestmove "); uci_print_move(mv); printf("\n");
+    if (g_tc.node_limit || g_tc.infinite || g_tc.ponder)
+    {
+        g_tc.enabled = false;
+        return;
+    }
+
+    uint64_t time = (P->side == WHITE) ? gp->wtime : gp->btime;
+    uint64_t incr  = (P->side == WHITE) ? gp->winc  : gp->binc;
+
+    if (!time) {
+        g_tc.enabled = true;
+        g_tc.soft_ms = 5;
+        g_tc.hard_ms = 10;
+        return;
+    }
+
+    int mtg = gp->f_mtg ? gp->movestogo : 30;
+    if (mtg < 1) mtg = 1;
+
+    uint64_t base    = time / (uint64_t)(mtg + 1);
+    uint64_t bonus   = incr ? (incr * 2 / 3) : 0;
+    uint64_t softcap = base + bonus;
+
+    if (softcap < 5) softcap = 5;
+    uint64_t max_ms = time * 7 / 10;
+    if (softcap > max_ms) softcap = max_ms;
+
+    uint64_t hardcap = softcap + (softcap / 2) + 5;
+    if (hardcap >= time) hardcap = (time > 10) ? time - 10 : softcap;
+
+    g_tc.enabled = true;
+    g_tc.soft_ms = softcap;
+    g_tc.hard_ms = hardcap;
 }
 
 void parse_go(Position *P, OrderTables *ord, char *cmd)
 {
-    char *ptr;
-    int depth = 10;
+    GoParams gp;
+    parse_go_tokens(cmd + 2, &gp);
+    time_setup(&gp, P);
 
-    if ((ptr = strstr(cmd, "depth")))
-        depth = atoi(ptr + 6);
+    int max_depth = gp.depth > 0 ? gp.depth : 64;
+    if (gp.depth > 0) {
+        memset(&g_tc, 0, sizeof g_tc);
+    }
 
-    /* Temporary set depth */
-    if (!depth) depth = 6;
-    
-    search(P, ord, depth);
+    search(P, ord, max_depth);
 }
 
 void uci_loop(Position *P, OrderTables *ord)
@@ -180,6 +269,9 @@ void uci_loop(Position *P, OrderTables *ord)
             printf("id name stackphish\n");
             printf("id author Leninadeee\n");
             printf("uciok\n");
+        }
+        else if (!strncmp(buf, "stop", 4)) {
+            g_tc.stop_now = true;
         }
         else if (!strncmp(buf, "quit", 4)) {
             break;

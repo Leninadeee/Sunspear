@@ -85,4 +85,31 @@ typedef struct
 }
 OrderTables;
 
+typedef struct {
+    bool enabled;
+    bool infinite;
+    bool ponder;
+    bool abort_iter;
+    bool stop_now;
+    uint64_t start_ms;
+    uint64_t soft_ms;
+    uint64_t hard_ms;
+    uint64_t node_limit;
+}
+TimeCntl;
+
+extern TimeCntl g_tc;
+
+typedef struct {
+    uint64_t wtime, btime, winc, binc;
+    uint64_t movetime;
+    uint64_t nodes;
+    int      movestogo;
+    int      depth;
+    bool     f_wtime, f_btime, f_winc, f_binc, f_mtg;
+    bool     infinite;
+    bool     ponder;
+}
+GoParams;
+
 #endif /* TYPES_H */
