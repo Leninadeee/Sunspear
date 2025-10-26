@@ -10,10 +10,10 @@ const char pc_ascii[12] = {
     'p', 'n', 'b', 'r', 'q', 'k'
 };
 
-const bb64 NOT_A  = 0xFEFEFEFEFEFEFEFEULL;  /*  Not in file A       */
-const bb64 NOT_AB = 0xFCFCFCFCFCFCFCFCULL;  /*  Not in file A, B    */
-const bb64 NOT_H  = 0x7F7F7F7F7F7F7F7FULL;  /*  Not in file H       */
-const bb64 NOT_GH = 0x3F3F3F3F3F3F3F3FULL;  /*  Not in file G, H    */
+const  bb64  NOT_A  = 0xFEFEFEFEFEFEFEFEULL;  // Not in file A
+const  bb64  NOT_AB = 0xFCFCFCFCFCFCFCFCULL;  // Not in file A and B
+const  bb64  NOT_H  = 0x7F7F7F7F7F7F7F7FULL;  // Not in file H
+const  bb64  NOT_GH = 0x3F3F3F3F3F3F3F3FULL;  // Not in file G and H
 
 /* Prints the bit representation of a position */
 void print_bitboard(bb64 bb)

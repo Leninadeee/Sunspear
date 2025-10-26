@@ -4,10 +4,6 @@
 #include "attacks.h"
 #include "movegen.h"
 
-/* Debug symbols array */
-const char sym[] = {'P','N','B','R','Q','K','p','n','b','r','q','k'};
-const char promos[] = {'n','b','r','q'};
-
 static inline void emit_move(MoveList *M, int src, int dst, Piece pc,
                              Piece promo, Piece target, bool cap, bool dbl,
                              bool enp, bool cstl)

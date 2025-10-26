@@ -30,12 +30,12 @@ int material_eval(const Position *P)
                 case W_ROOK:   eval += rsqtable[sq]; break;
                 case W_QUEEN:  eval += qsqtable[sq]; break;
                 case W_KING:   eval += ksqtable[sq]; break;
-                case B_PAWN:   eval -= psqtable[sq ^ 56]; break;
-                case B_KNIGHT: eval -= nsqtable[sq ^ 56]; break;
-                case B_BISHOP: eval -= bsqtable[sq ^ 56]; break;
-                case B_ROOK:   eval -= rsqtable[sq ^ 56]; break;
-                case B_QUEEN:  eval -= qsqtable[sq ^ 56]; break;
-                case B_KING:   eval -= ksqtable[sq ^ 56]; break;
+                case B_PAWN:   eval -= psqtable[sq^56]; break;
+                case B_KNIGHT: eval -= nsqtable[sq^56]; break;
+                case B_BISHOP: eval -= bsqtable[sq^56]; break;
+                case B_ROOK:   eval -= rsqtable[sq^56]; break;
+                case B_QUEEN:  eval -= qsqtable[sq^56]; break;
+                case B_KING:   eval -= ksqtable[sq^56]; break;
             }
         }
     }

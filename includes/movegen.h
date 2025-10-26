@@ -6,17 +6,17 @@
 
 #include "bitboard.h"
 
-#define PTYPE(p)    ((p) >= 6) ? ((p) - 6) : (p)
+#define  PTYPE(p)   ((p) >= 6) ? ((p) - 6) : (p)
 
 /* Bitboards with rank i set */
-#define RANK_1  0xFF00000000000000ULL
-#define RANK_2  0x00FF000000000000ULL
-#define RANK_3  0x0000FF0000000000ULL
-#define RANK_4  0x000000FF00000000ULL
-#define RANK_5  0x00000000FF000000ULL
-#define RANK_6  0x0000000000FF0000ULL
-#define RANK_7  0x000000000000FF00ULL
-#define RANK_8  0x00000000000000FFULL
+#define  RANK_1  0xFF00000000000000ULL
+#define  RANK_2  0x00FF000000000000ULL
+#define  RANK_3  0x0000FF0000000000ULL
+#define  RANK_4  0x000000FF00000000ULL
+#define  RANK_5  0x00000000FF000000ULL
+#define  RANK_6  0x0000000000FF0000ULL
+#define  RANK_7  0x000000000000FF00ULL
+#define  RANK_8  0x00000000000000FFULL
 
 static const char cstlmask[64] = {
      7, 15, 15, 15,  3, 15, 15, 11,
@@ -29,26 +29,10 @@ static const char cstlmask[64] = {
     13, 15, 15, 15, 12, 15, 15, 14
 };
 
-static const int mvv_lva[144] = {
- 	105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605,
-	104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604,
-	103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603,
-	102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602,
-	101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601,
-	100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600,
-
-	105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605,
-	104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604,
-	103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603,
-	102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602,
-	101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601,
-	100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600
-};
-
-extern void gen_all(const Position *, MoveList *, GenMode);
-extern void add_move(MoveList *, uint32_t);
-extern void print_moves(const MoveList *);
-extern bool make_move(Position *, uint32_t);
+extern  void  gen_all(const Position *, MoveList *, GenMode);
+extern  void  add_move(MoveList *, uint32_t);
+extern  void  print_moves(const MoveList *);
+extern  bool  make_move(Position *, uint32_t);
 
 /* Generate a 32 bit (28 used) integer encoding a move*/
 static inline uint32_t encode(int src, int dst, Piece pc, Piece promo,

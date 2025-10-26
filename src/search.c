@@ -4,41 +4,38 @@
 #include "eval.h"
 #include "movegen.h"
 #include "search.h"
-#include "types.h"
 
-long g_nodes;
-
-int negamax(Position *P, int depth, int ply, int alpha, int beta,
-            OrderTables *ord)
+int negamax(SearchCtx *Ctx, int depth, int ply, int alpha, int beta,
+            bool f_null)
 {
-    time_check();
+    time_check(Ctx->nodecnt);
     if (g_tc.stop_now)
         return alpha;
 
-    ord->pv_len[ply] = ply;
+    Ctx->Ord.pv_len[ply] = ply;
     
     if (depth == 0) {
-        ord->pv_len[ply] = ply;
-        return quiesce(P, alpha, beta);
+        Ctx->Ord.pv_len[ply] = ply;
+        return quiesce(&Ctx->Pos, alpha, beta, &Ctx->nodecnt);
     }
 
     if (ply >= MAX_PLY)
-        return main_eval(P);
+        return main_eval(&Ctx->Pos);
 
-    g_nodes++;
+    Ctx->nodecnt++;
 
-    bool in_check = checksquare(P, (Color)(P->side ^ 1),
-                                lsb(P->pcbb[P->side ? B_KING : W_KING]));
+    bool in_check = checksquare(&Ctx->Pos, (Color)(Ctx->Pos.side ^ 1),
+                        lsb(Ctx->Pos.pcbb[Ctx->Pos.side ? B_KING : W_KING]));
     bool gameover = true;
 
-    if (depth >= R_FACTOR + 1 && in_check == false && ply)
+    if (f_null == true && depth >= R_FACTOR + 1 && in_check == false && ply)
     {
-        Position prev = *P;
-        P->side ^= 1;
-        P->enpassant = none;
-        int eval = -negamax(P, depth - 1 - R_FACTOR, ply + 1,
-                            -beta, -beta + 1, ord);
-        *P = prev;
+        Position prev = Ctx->Pos;
+        Ctx->Pos.side ^= 1;
+        Ctx->Pos.enpassant = none;
+        int eval = -negamax(Ctx, depth - 1 - R_FACTOR, ply + 1,
+                            -beta, -beta + 1, false);
+        *(&Ctx->Pos) = prev;
         if (eval >= beta)
             return beta;
     }
@@ -46,26 +43,26 @@ int negamax(Position *P, int depth, int ply, int alpha, int beta,
     int nsearched = 0;
 
     MoveList ml = (MoveList){0};
-    gen_all(P, &ml, GEN_ALL);
+    gen_all(&Ctx->Pos, &ml, GEN_ALL);
 
-    if (ord->follow_pv[ply])
-        enable_pv_scoring(ord, &ml, ply);
+    if (Ctx->Ord.follow_pv[ply])
+        enable_pv_scoring(&Ctx->Ord, &ml, ply);
 
-    score_all(&ml, ord, ply);
+    score_all(&ml, &Ctx->Ord, ply);
 
     for (int i = 0; i < ml.nmoves; i++) {
-        Position prev = *P;
+        Position prev = Ctx->Pos;
         get_ordered_move(&ml, i);
-        if (!make_move(P, ml.moves[i])) continue;
+        if (!make_move(&Ctx->Pos, ml.moves[i])) continue;
         gameover = false;
 
-        ord->follow_pv[ply + 1] = ord->follow_pv[ply] &&
-                                  (ml.moves[i] == ord->pv_table[0][ply]);
+        Ctx->Ord.follow_pv[ply + 1] = Ctx->Ord.follow_pv[ply] &&
+                                  (ml.moves[i] == Ctx->Ord.pv_table[0][ply]);
 
         int eval;
 
         if (nsearched == 0) {
-            eval = -negamax(P, depth - 1, ply + 1, -beta, -alpha, ord);
+            eval = -negamax(Ctx, depth - 1, ply + 1, -beta, -alpha, true);
         }
         else {
             if (
@@ -75,25 +72,31 @@ int negamax(Position *P, int depth, int ply, int alpha, int beta,
                 !dcdcap(ml.moves[i]) &&
                 !dcdpromo(ml.moves[i])
             )
-                eval = -negamax(P, depth - 2, ply + 1, -alpha - 1, -alpha, ord);
+                eval = -negamax(Ctx, depth - 2, ply + 1,
+                                -alpha - 1, -alpha, true);
             else
                 eval = alpha + 1;
 
-            if (eval > alpha) {
-                eval = -negamax(P, depth - 1, ply + 1, -alpha - 1, -alpha, ord);
-                if ((eval > alpha) && (eval < beta)) {
-                    eval = -negamax(P, depth - 1, ply + 1, -beta, -alpha, ord);
+            if (eval > alpha)
+            {
+                eval = -negamax(Ctx, depth - 1, ply + 1,
+                                -alpha - 1, -alpha, true);
+                                
+                if ((eval > alpha) && (eval < beta))
+                {
+                    eval = -negamax(Ctx, depth - 1, ply + 1,
+                                    -beta, -alpha, true);
                 }
             }
         }
 
-        *P = prev;
+        *(&Ctx->Pos) = prev;
         nsearched++;
 
         if (eval >= beta) {
             if (dcdcap(ml.moves[i]) == false) {
-                ord->klr_table[1][ply] = ord->klr_table[0][ply];
-                ord->klr_table[0][ply] = ml.moves[i];
+                Ctx->Ord.klr_table[1][ply] = Ctx->Ord.klr_table[0][ply];
+                Ctx->Ord.klr_table[0][ply] = ml.moves[i];
             }
             return beta;
         }
@@ -102,32 +105,32 @@ int negamax(Position *P, int depth, int ply, int alpha, int beta,
             if (dcdcap(ml.moves[i]) == false) {
                 Piece pc = dcdpc(ml.moves[i]);
                 int dst = dcddst(ml.moves[i]);
-                ord->hist_table[pc][dst] += depth;
+                Ctx->Ord.hist_table[pc][dst] += depth;
             }
 
             alpha = eval;
 
-            ord->pv_table[ply][ply] = ml.moves[i];
+            Ctx->Ord.pv_table[ply][ply] = ml.moves[i];
 
-            for (int j = ply + 1; j < ord->pv_len[ply + 1]; j++)
-                ord->pv_table[ply][j] = ord->pv_table[ply + 1][j];
-            ord->pv_len[ply] = ord->pv_len[ply + 1];
+            for (int j = ply + 1; j < Ctx->Ord.pv_len[ply + 1]; j++)
+                Ctx->Ord.pv_table[ply][j] = Ctx->Ord.pv_table[ply + 1][j];
+            Ctx->Ord.pv_len[ply] = Ctx->Ord.pv_len[ply + 1];
         }
     }
 
     if (gameover) {
-        ord->pv_len[ply] = ply;
+        Ctx->Ord.pv_len[ply] = ply;
         return in_check ? (-MATE + ply) : 0;
     }
 
     return alpha;
 }
 
-int quiesce(Position *P, int alpha, int beta)
+int quiesce(Position *P, int alpha, int beta, uint64_t *nodecnt)
 {
-    g_nodes++;
+    (*nodecnt)++;
 
-    time_check();
+    time_check(*nodecnt);
     if (g_tc.stop_now)
         return alpha;
 
@@ -147,7 +150,7 @@ int quiesce(Position *P, int alpha, int beta)
         get_ordered_move(&ml, i);
         if (!make_move(P, ml.moves[i])) continue;
 
-        int eval = -quiesce(P, -beta, -alpha);
+        int eval = -quiesce(P, -beta, -alpha, nodecnt);
 
         *P = prev;
 

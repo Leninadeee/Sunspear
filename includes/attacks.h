@@ -2,24 +2,21 @@
 #define ATTACKS_H
 
 #include <immintrin.h>
-#include <stdbool.h>
 
 #include "bitboard.h"
 
-#define HAS_PEXT    1
+extern  bb64  ptable[2][64];  /* All pawn attack tables   */
+extern  bb64  ntable[64];     /* All knight attack tables */
+extern  bb64  ktable[64];     /* All king attack tables   */
+extern  bb64  bmask[64];      /* All bishop attack masks  */
+extern  bb64  rmask[64];      /* All rook attack masks    */
+extern  bb64  *btable[64];    /* All bishop attack tables */
+extern  bb64  *rtable[64];    /* All rook attack tables   */
 
-extern  bb64    ptable[2][64];  /* All pawn attack tables   */
-extern  bb64    ntable[64];     /* All knight attack tables */
-extern  bb64    ktable[64];     /* All king attack tables   */
-extern  bb64    bmask[64];      /* All bishop attack masks  */
-extern  bb64    rmask[64];      /* All rook attack masks    */
-extern  bb64    *btable[64];    /* All bishop attack tables */
-extern  bb64    *rtable[64];    /* All rook attack tables   */
-
-extern  void    bishop_pext_tables(void);
-extern  void    rook_pext_tables(void);
-extern  void    init_leapers(void);
-extern  void    init_sliders(void);
+extern  void  bishop_pext_tables(void);
+extern  void  rook_pext_tables(void);
+extern  void  init_leapers(void);
+extern  void  init_sliders(void);
 
 /* Returns a bishop attack configuration */
 static inline bb64 bishop_attacks_pext(int sq, bb64 occ) {
@@ -52,13 +49,17 @@ static inline bool checksquare(const Position * P, Color c, Square sq)
     const int QUEEN  = (c == WHITE) ? W_QUEEN  : B_QUEEN;
     const int KING   = (c == WHITE) ? W_KING   : B_KING;
 
-    if (ptable[c ^ 1][sq] & P->pcbb[PAWN]) return true;
+    if (ptable[c ^ 1][sq] & P->pcbb[PAWN])
+        return true;
 
-    if (ntable[sq] & P->pcbb[KNIGHT]) return true;
+    if (ntable[sq] & P->pcbb[KNIGHT])
+        return true;
 
-    if (bishop_attacks_pext(sq, occ) & (P->pcbb[BISHOP] | P->pcbb[QUEEN])) return true;
+    if (bishop_attacks_pext(sq, occ) & (P->pcbb[BISHOP] | P->pcbb[QUEEN]))
+        return true;
 
-    if (rook_attacks_pext(sq, occ) & (P->pcbb[ROOK] | P->pcbb[QUEEN])) return true;
+    if (rook_attacks_pext(sq, occ) & (P->pcbb[ROOK] | P->pcbb[QUEEN]))
+        return true;
 
     if (ktable[sq] & P->pcbb[KING]) return true;
 

@@ -82,10 +82,17 @@ static bb64 bishop_attack_mask(Square sq)
     int tr = sq >> 3;
     int tf = sq & 7;
 
-    for (r = tr + 1, f = tf + 1; r <= 6 && f <= 6; r++, f++) attacks |= (1ULL << (idx(r, f)));
-    for (r = tr - 1, f = tf + 1; r >= 1 && f <= 6; r--, f++) attacks |= (1ULL << (idx(r, f)));
-    for (r = tr + 1, f = tf - 1; r <= 6 && f >= 1; r++, f--) attacks |= (1ULL << (idx(r, f)));
-    for (r = tr - 1, f = tf - 1; r >= 1 && f >= 1; r--, f--) attacks |= (1ULL << (idx(r, f)));
+    for (r = tr + 1, f = tf + 1; r <= 6 && f <= 6; r++, f++)
+        attacks |= (1ULL << (idx(r, f)));
+
+    for (r = tr - 1, f = tf + 1; r >= 1 && f <= 6; r--, f++)
+        attacks |= (1ULL << (idx(r, f)));
+
+    for (r = tr + 1, f = tf - 1; r <= 6 && f >= 1; r++, f--)
+        attacks |= (1ULL << (idx(r, f)));
+
+    for (r = tr - 1, f = tf - 1; r >= 1 && f >= 1; r--, f--)
+        attacks |= (1ULL << (idx(r, f)));
 
     return attacks;
 }
@@ -98,10 +105,17 @@ static bb64 rook_attack_mask(Square sq)
     int tr = sq >> 3;
     int tf = sq & 7;
 
-    for (r = tr + 1; r <= 6; r++) attacks |= (1ULL << (idx(r, tf)));
-    for (r = tr - 1; r >= 1; r--) attacks |= (1ULL << (idx(r, tf)));
-    for (f = tf + 1; f <= 6; f++) attacks |= (1ULL << (idx(tr, f)));
-    for (f = tf - 1; f >= 1; f--) attacks |= (1ULL << (idx(tr, f)));
+    for (r = tr + 1; r <= 6; r++)
+        attacks |= (1ULL << (idx(r, tf)));
+
+    for (r = tr - 1; r >= 1; r--)
+        attacks |= (1ULL << (idx(r, tf)));
+
+    for (f = tf + 1; f <= 6; f++)
+        attacks |= (1ULL << (idx(tr, f)));
+
+    for (f = tf - 1; f >= 1; f--)
+        attacks |= (1ULL << (idx(tr, f)));
 
     return attacks;
 }

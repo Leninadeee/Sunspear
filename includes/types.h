@@ -1,10 +1,11 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
-#define MAX_MOVES   256
-#define MAX_PLY     128
+#define  MAX_MOVES  256
+#define  MAX_PLY    128
 
 typedef uint64_t bb64;
 
@@ -25,7 +26,11 @@ typedef enum
 }
 Square;
 
-typedef enum { WHITE, BLACK, BOTH } Color;
+typedef enum
+{
+    WHITE, BLACK, BOTH
+}
+Color;
 
 typedef enum
 {
@@ -42,73 +47,81 @@ typedef enum
 }
 CastlingRights;
 
-/* Current unused */
 typedef enum
 {
     GEN_ALL,
     GEN_CAPTURES,
     GEN_EVASIONS,
     GEN_QUIET,
-    GEN_QUIET_CHECKS
 }
 GenMode;
 
 typedef struct
 {
-    bb64     pcbb[12];              /* Occupancy bitboards for pieces */
-    bb64     white, black, both;    /* Occupancy bitboards for colors */
-    uint64_t zobrist;               /* Zobrist position hash          */
-    uint16_t fmcount;               /* Move number                    */
-    uint8_t  hmclock;               /* 50 move counter                */
-    uint8_t  castling;              /* Castling rights bitmask        */
-    uint8_t  side;                  /* Color to move                  */
-    uint8_t  enpassant;             /* En passants square             */
+    bb64      pcbb[12];            // Occupancy bitboards for pieces
+    bb64      white, black, both;  // Occupancy bitboards for colors
+    uint64_t  zobrist;             // Zobrist position hash
+    uint16_t  fmcount;             // Move number
+    uint8_t   hmclock;             // 50 move counter
+    uint8_t   castling;            // Castling rights bitmask
+    uint8_t   side;                // Color to move
+    uint8_t   enpassant;           // En passant square
 }
 Position;
 
 typedef struct
 {
-    uint32_t moves[MAX_MOVES];
-    uint32_t scores[MAX_MOVES];
-    uint8_t  nmoves;
-}
-MoveList;
-
-typedef struct
-{
-    uint32_t klr_table[2][MAX_PLY];
-    uint32_t hist_table[12][64];
-    uint32_t pv_table[MAX_PLY][MAX_PLY];
-    int pv_len[MAX_PLY];
-    bool follow_pv[MAX_PLY]; /* Flag to follow pv or not */
-    bool score_pv[MAX_PLY]; /* Flag to score pv or not */
+    uint32_t  klr_table[2][MAX_PLY];
+    uint32_t  hist_table[12][64];
+    uint32_t  pv_table[MAX_PLY][MAX_PLY];
+    int       pv_len[MAX_PLY];
+    bool      follow_pv[MAX_PLY]; /* Flag to follow pv or not */
+    bool      score_pv[MAX_PLY];  /* Flag to score pv or not */
 }
 OrderTables;
 
+typedef struct
+{
+    Position     Pos;
+    OrderTables  Ord;
+    uint64_t     nodecnt;
+}
+SearchCtx;
+
+typedef struct
+{
+    uint32_t  moves[MAX_MOVES];
+    uint32_t  scores[MAX_MOVES];
+    uint16_t  nmoves;
+}
+MoveList;
+
 typedef struct {
-    bool enabled;
-    bool infinite;
-    bool ponder;
-    bool abort_iter;
-    bool stop_now;
-    uint64_t start_ms;
-    uint64_t soft_ms;
-    uint64_t hard_ms;
-    uint64_t node_limit;
+    uint64_t  start_ms;
+    uint64_t  soft_ms;
+    uint64_t  hard_ms;
+    uint64_t  node_limit;
+    bool      enabled;
+    bool      infinite;
+    bool      ponder;
+    bool      abort_iter;
+    bool      stop_now;
 }
 TimeCntl;
 
 extern TimeCntl g_tc;
 
-typedef struct {
-    uint64_t wtime, btime, winc, binc;
-    uint64_t movetime;
-    uint64_t nodes;
-    int      movestogo;
-    int      depth;
-    bool     f_wtime, f_btime, f_winc, f_binc, f_mtg;
-    bool     infinite;
-    bool     ponder;
+typedef struct
+{
+    uint64_t  wtime, btime, winc, binc;
+    uint64_t  movetime;
+    uint64_t  nodes;
+    uint32_t  movestogo;
+    uint8_t   depth;
+    bool      f_wtime, f_btime, f_winc, f_binc;
+    bool      f_mtg;
+    bool      infinite;
+    bool      ponder;
 }
 GoParams;
 

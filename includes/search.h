@@ -7,27 +7,24 @@
 #include "types.h"
 #include "uci.h"
 
-#define MAX(a, b)   ((a) > (b) ? (a) : (b))
-#define MIN(a, b)   ((a) < (b) ? (a) : (b))
-#define PTYPE(p)    ((p) >= 6) ? ((p) - 6) : (p)
+#define  MAX(a, b)  ((a) > (b) ? (a) : (b))
+#define  PTYPE(p)   ((p) >= 6) ? ((p) - 6) : (p)
 
-#define INF     50000
-#define MATE    49000
+#define  INF    50000
+#define  MATE   49000
 
-#define NFULL_DEPTHS    4
-#define LMR_LIMIT       3
-#define R_FACTOR        2
+#define  NFULL_DEPTHS   4
+#define  LMR_LIMIT      3
+#define  R_FACTOR       2
 
-#define PV_OFFSET   (1 << 30)
-#define CAP_OFFSET  (1 << 29)
-#define KLR_OFFSET  (1 << 28)
+#define  PV_OFFSET   (1 << 30)
+#define  CAP_OFFSET  (1 << 29)
+#define  KLR_OFFSET  (1 << 28)
 
-#define TIME_CHECK_MASK 0x7ff
+#define  TIME_CHECK_MASK  0x07FF
 
-extern long g_nodes;
-
-extern int negamax(Position *, int, int , int, int, OrderTables *);
-extern int quiesce(Position *, int, int);
+extern int negamax(SearchCtx *, int, int , int, int, bool);
+extern int quiesce(Position *, int, int, uint64_t *);
 
 static inline void enable_pv_scoring(OrderTables *ord, MoveList *ml, int ply)
 {
@@ -46,7 +43,6 @@ static inline void enable_pv_scoring(OrderTables *ord, MoveList *ml, int ply)
         }
     }
 }
-
 
 static inline uint32_t score_move(OrderTables *ord, int ply, uint32_t mv)
 {
@@ -101,25 +97,25 @@ static inline void get_ordered_move(MoveList *ml, int i)
     }
 }
 
-static uint64_t now_ms(void)
+static uint64_t time_ms(void)
 {
     return GetTickCount64(); 
 }
 
-static inline void time_check(void) {
+static inline void time_check(uint64_t nodes) {
     if ((!g_tc.enabled && !g_tc.node_limit) || g_tc.infinite || g_tc.ponder)
         return;
 
-    if ((g_nodes & TIME_CHECK_MASK) != 0) return;
+    if ((nodes & TIME_CHECK_MASK) != 0) return;
 
-    if (g_tc.node_limit && (uint64_t)g_nodes >= g_tc.node_limit) {
+    if (g_tc.node_limit && nodes >= g_tc.node_limit) {
         g_tc.stop_now = true;
         return;
     }
 
     if (!g_tc.enabled) return;
 
-    uint64_t elapsed = now_ms() - g_tc.start_ms;
+    uint64_t elapsed = time_ms() - g_tc.start_ms;
     if (!g_tc.abort_iter && elapsed >= g_tc.soft_ms) g_tc.abort_iter = true;
     if (!g_tc.stop_now  && elapsed >= g_tc.hard_ms)  g_tc.stop_now   = true;
 }

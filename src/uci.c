@@ -8,13 +8,17 @@
 #include "types.h"
 #include "uci.h"
 
+#define  START_POS  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
 TimeCntl g_tc;
 
 void uci_print_move(uint32_t mv)
 {
     char buf1[3]; idxtosq(dcdsrc(mv), buf1);
     char buf2[3]; idxtosq(dcddst(mv), buf2);
+
     Piece promo = dcdpromo(mv);
+
     if (promo) printf("%s%s%c", buf1, buf2, (idxtopc(promo) | 32));
     else       printf("%s%s", buf1, buf2);
 }
@@ -31,10 +35,14 @@ uint32_t parse_move(const Position *P, const char *mvstr)
     if (mvstr[4]) {
         char c = mvstr[4];
         
-        if      (c == 'q') pc = (P->side == WHITE) ? W_QUEEN  : B_QUEEN;
-        else if (c == 'r') pc = (P->side == WHITE) ? W_ROOK   : B_ROOK;
-        else if (c == 'b') pc = (P->side == WHITE) ? W_BISHOP : B_BISHOP;
-        else if (c == 'n') pc = (P->side == WHITE) ? W_KNIGHT : B_KNIGHT;
+        if (c == 'q')
+            pc = (P->side == WHITE) ? W_QUEEN  : B_QUEEN;
+        else if (c == 'r')
+            pc = (P->side == WHITE) ? W_ROOK   : B_ROOK;
+        else if (c == 'b')
+            pc = (P->side == WHITE) ? W_BISHOP : B_BISHOP;
+        else if (c == 'n')
+            pc = (P->side == WHITE) ? W_KNIGHT : B_KNIGHT;
     }
 
     MoveList mv = (MoveList){0};
@@ -42,36 +50,38 @@ uint32_t parse_move(const Position *P, const char *mvstr)
 
     for (int i = 0; i < mv.nmoves; i++) {
         const uint32_t m = mv.moves[i];
-        if (dcdsrc(m) == src && dcddst(m) == dst && dcdpromo(m) == pc) {
-            return m; }
+        if (dcdsrc(m) == src && dcddst(m) == dst && dcdpromo(m) == pc)
+            return m;
     }
 
     return 0;
 }
 
 
-void parse_position(Position *P, char *cmd) {
+void parse_position(Position *P, char *cmd)
+{
     char *ptr = cmd + 9;
 
-    if (!strncmp(ptr, "startpos", 8))
-    {
+    if (!strncmp(ptr, "startpos", 8)) {
         memset(P, 0, sizeof *P);
-        parse_fen(START_POSITION, P);
+        parse_fen(START_POS, P);
     } 
-    else
-    {
+    else {
         char *fen = strstr(cmd, "fen");
 
         if (!fen) {
             memset(P, 0, sizeof *P);
-            parse_fen(START_POSITION, P);
+            parse_fen(START_POS, P);
         }
         else {
             fen += 4;
             char *mvstart = strstr(fen, " moves");
             size_t len = mvstart ? (size_t)(mvstart - fen) : strlen(fen);
-            char fenbuf[256];
-            if (len >= sizeof fenbuf) len = sizeof(fenbuf) - 1;
+            
+            char fenbuf[MAXFEN];
+            if (len >= MAXFEN)
+                len = MAXFEN - 1;
+
             memcpy(fenbuf, fen, len);
             fenbuf[len] = '\0';
 
@@ -94,37 +104,36 @@ void parse_position(Position *P, char *cmd) {
 }
 
 
-void search(Position *P, OrderTables *ord, int depth)
+void search(SearchCtx *Ctx, int depth)
 {
     assert(depth > 0);
+
     int eval;
-    
-    memset(ord, 0, sizeof(OrderTables));
+
+    memset(&Ctx->Ord, 0, sizeof(OrderTables));
+
     for (int d = 1; d <= depth; d++)
     {
-        g_nodes = 0;
-        memset(ord->follow_pv, 0, MAX_PLY);
-        memset(ord->score_pv,  0, MAX_PLY);
-        ord->follow_pv[0] = true;
+        Ctx->nodecnt = 0;
+        memset(Ctx->Ord.follow_pv, 0, MAX_PLY);
+        memset(Ctx->Ord.score_pv,  0, MAX_PLY);
+        Ctx->Ord.follow_pv[0] = true;
 
         g_tc.abort_iter = false;
 
-        eval = negamax(P, d, 0, -INF, INF, ord);
+        eval = negamax(Ctx, d, 0, -INF, INF, true);
 
-        printf("info score cp %d depth %d nodes %ld pv ", eval, d, g_nodes);
-        for (int i = 0; i < ord->pv_len[0]; i++) {
-            uci_print_move(ord->pv_table[0][i]); printf(" ");
+        printf("info score cp %d depth %d nodes %lld pv ", eval, d, Ctx->nodecnt);
+        for (int i = 0; i < Ctx->Ord.pv_len[0]; i++) {
+            uci_print_move(Ctx->Ord.pv_table[0][i]); printf(" ");
         }
         printf("\n");
 
         if (g_tc.abort_iter || g_tc.stop_now) break;
     }
 
-    uint32_t mv = ord->pv_table[0][0];
-    if (!mv) {
-        printf("bestmove 0000\n");
-        return; 
-    }
+    uint32_t mv = Ctx->Ord.pv_table[0][0];
+    if (!mv) { printf("bestmove 0000\n"); return; }
     printf("bestmove "); uci_print_move(mv); printf("\n");
 }
 
@@ -136,6 +145,7 @@ void parse_go_tokens(const char *s, GoParams *gp)
     while (*s) {
         int d;
         uint64_t u;
+
         if (sscanf(s, " wtime %llu", &u) == 1) {
             gp->wtime = u; gp->f_wtime = 1; 
         }
@@ -167,8 +177,9 @@ void parse_go_tokens(const char *s, GoParams *gp)
             gp->ponder = true;
         }
 
-        while (*s && *s!=' ') s++;
-        while (*s==' ') s++;
+        while (*s && *s != ' ') s++;
+
+        while (*s == ' ') s++;
     }
 }
 
@@ -179,7 +190,7 @@ void time_setup(const GoParams *gp, const Position *P)
     g_tc.node_limit = gp->nodes;
     g_tc.infinite   = gp->infinite;
     g_tc.ponder     = gp->ponder;
-    g_tc.start_ms   = now_ms();
+    g_tc.start_ms   = time_ms();
 
     if (gp->movetime) {
         g_tc.enabled = true;
@@ -213,7 +224,7 @@ void time_setup(const GoParams *gp, const Position *P)
 
     if (softcap < 5) softcap = 5;
     uint64_t max_ms = time * 7 / 10;
-    if (softcap > max_ms) softcap = max_ms;
+    if (softcap > max_ms)softcap = max_ms;
 
     uint64_t hardcap = softcap + (softcap / 2) + 5;
     if (hardcap >= time) hardcap = (time > 10) ? time - 10 : softcap;
@@ -223,21 +234,21 @@ void time_setup(const GoParams *gp, const Position *P)
     g_tc.hard_ms = hardcap;
 }
 
-void parse_go(Position *P, OrderTables *ord, char *cmd)
+void parse_go(SearchCtx *Ctx, char *cmd)
 {
     GoParams gp;
     parse_go_tokens(cmd + 2, &gp);
-    time_setup(&gp, P);
+    time_setup(&gp, &Ctx->Pos);
 
     int max_depth = gp.depth > 0 ? gp.depth : 64;
     if (gp.depth > 0) {
         memset(&g_tc, 0, sizeof g_tc);
     }
 
-    search(P, ord, max_depth);
+    search(Ctx, max_depth);
 }
 
-void uci_loop(Position *P, OrderTables *ord)
+void uci_loop(SearchCtx *Ctx)
 {
     setbuf(stdin, NULL);
     setbuf(stdout, NULL);
@@ -257,13 +268,13 @@ void uci_loop(Position *P, OrderTables *ord)
             continue;
         }
         else if (!strncmp(buf, "position", 8)) {
-            parse_position(P, buf);
+            parse_position(&Ctx->Pos, buf);
         }
         else if (!strncmp(buf, "ucinewgame", 10)) {
-            parse_position(P, "position startpos");
+            parse_position(&Ctx->Pos, "position startpos");
         }
         else if (!strncmp(buf, "go", 2)) {
-            parse_go(P, ord, buf);
+            parse_go(Ctx, buf);
         }
         else if (!strncmp(buf, "uci", 3)) {
             printf("id name stackphish\n");
