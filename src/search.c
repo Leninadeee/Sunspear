@@ -11,8 +11,6 @@ long g_nodes;
 int negamax(Position *P, int depth, int ply, int alpha, int beta,
             OrderTables *ord)
 {
-    bool pv_found = false;
-
     ord->pv_len[ply] = ply;
     
     if (depth == 0) {
@@ -28,6 +26,19 @@ int negamax(Position *P, int depth, int ply, int alpha, int beta,
     bool in_check = checksquare(P, (Color)(P->side ^ 1),
                                 lsb(P->pcbb[P->side ? B_KING : W_KING]));
     bool gameover = true;
+
+    if (depth >= R_FACTOR + 1 && in_check == false && ply)
+    {
+        Position prev = *P;
+        P->side ^= 1;
+        P->enpassant = none;
+        int eval = -negamax(P, depth - 1 - R_FACTOR, ply + 1,
+                            -beta, -beta + 1, ord);
+        *P = prev;
+        if (eval >= beta)
+            return beta;
+    }
+
     int nsearched = 0;
 
     MoveList ml = (MoveList){0};
@@ -49,14 +60,27 @@ int negamax(Position *P, int depth, int ply, int alpha, int beta,
 
         int eval;
 
-        if (pv_found) {
-            eval = -negamax(P, depth - 1, ply + 1, -alpha - 1, -alpha, ord);
-            if ((eval > alpha) && (eval < beta)) {
-                eval = -negamax(P, depth - 1, 0, -beta, -alpha, ord);
-            }
+        if (nsearched == 0) {
+            eval = -negamax(P, depth - 1, ply + 1, -beta, -alpha, ord);
         }
         else {
-            eval = -negamax(P, depth - 1, ply + 1, -beta, -alpha, ord);
+            if (
+                nsearched >= NFULL_DEPTHS &&
+                depth >= LMR_LIMIT &&
+                in_check == false &&
+                !dcdcap(ml.moves[i]) &&
+                !dcdpromo(ml.moves[i])
+            )
+                eval = -negamax(P, depth - 2, ply + 1, -alpha - 1, -alpha, ord);
+            else
+                eval = alpha + 1;
+
+            if (eval > alpha) {
+                eval = -negamax(P, depth - 1, ply + 1, -alpha - 1, -alpha, ord);
+                if ((eval > alpha) && (eval < beta)) {
+                    eval = -negamax(P, depth - 1, ply + 1, -beta, -alpha, ord);
+                }
+            }
         }
 
         *P = prev;
@@ -78,8 +102,6 @@ int negamax(Position *P, int depth, int ply, int alpha, int beta,
             }
 
             alpha = eval;
-
-            pv_found = true;
 
             ord->pv_table[ply][ply] = ml.moves[i];
 

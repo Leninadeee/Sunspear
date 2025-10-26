@@ -15,6 +15,7 @@
 
 #define NFULL_DEPTHS    4
 #define LMR_LIMIT       3
+#define R_FACTOR        2
 
 #define PV_OFFSET   (1 << 30)
 #define CAP_OFFSET  (1 << 29)

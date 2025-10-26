@@ -97,13 +97,13 @@ void search(Position *P, OrderTables *ord, int depth)
 
     int eval;
     uint32_t mv;
-    g_nodes = 0;
+    //g_nodes = 0;
     
     memset(ord, 0, sizeof(OrderTables));
 
     for (int curr_depth = 1; curr_depth <= depth; curr_depth++)
     {
-        //g_nodes = 0;
+        g_nodes = 0;
         memset(ord->follow_pv, 0, MAX_PLY);
         memset(ord->score_pv, 0, MAX_PLY);
         ord->follow_pv[0] = true;
@@ -137,7 +137,7 @@ void search(Position *P, OrderTables *ord, int depth)
 void parse_go(Position *P, OrderTables *ord, char *cmd)
 {
     char *ptr;
-    int depth = 7;
+    int depth = 10;
 
     if ((ptr = strstr(cmd, "depth")))
         depth = atoi(ptr + 6);
