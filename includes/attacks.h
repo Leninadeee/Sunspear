@@ -5,6 +5,11 @@
 
 #include "bitboard.h"
 
+extern  const bb64  NOT_A;   // Not in file A
+extern  const bb64  NOT_AB;  // Not in file A and B
+extern  const bb64  NOT_H;   // Not in file H
+extern  const bb64  NOT_GH;  // Not in file G and H
+
 extern  bb64  ptable[2][64];  /* All pawn attack tables   */
 extern  bb64  ntable[64];     /* All knight attack tables */
 extern  bb64  ktable[64];     /* All king attack tables   */

@@ -4,20 +4,15 @@
 #include "types.h"
 
 /* Bit manipulation macros */
-#define getbit(bb, offset)  ((bb) & (1ULL << (offset)))
-#define setbit(bb, offset)  ((bb) |= (1ULL << (offset)))
-#define clrbit(bb, offset)  ((bb) &= (~(1ULL << (offset))))
-#define idx(r, f)           (((r) << 3) | (f))
+#define  getbit(bb, offset)  ((bb) & (1ULL << (offset)))
+#define  setbit(bb, offset)  ((bb) |= (1ULL << (offset)))
+#define  clrbit(bb, offset)  ((bb) &= (~(1ULL << (offset))))
+#define  idx(r, f)           (((r) << 3) | (f))
 
-extern  const bb64  NOT_A;   // Not in file A
-extern  const bb64  NOT_AB;  // Not in file A and B
-extern  const bb64  NOT_H;   // Not in file H
-extern  const bb64  NOT_GH;  // Not in file G and H
-
-extern  void  print_bitboard(bb64);
-extern  void  print_board(const Position *);
-extern  void  reset_board(Position *);
-extern  bool  parse_fen(const char *, Position *);
+extern  void  print_bitboard(bb64 bb);
+extern  void  print_board(const Position *P);
+extern  void  reset_board(Position *P);
+extern  bool  parse_fen(const char *fen, Position *P);
 
 /* Return the number of set bits */
 static inline int popcnt64(bb64 bb)

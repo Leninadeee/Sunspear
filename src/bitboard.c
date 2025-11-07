@@ -4,16 +4,12 @@
 #include <string.h>
 
 #include "bitboard.h"
+#include "tt.h"
 
 const char pc_ascii[12] = {
     'P', 'N', 'B', 'R', 'Q', 'K',
     'p', 'n', 'b', 'r', 'q', 'k'
 };
-
-const  bb64  NOT_A  = 0xFEFEFEFEFEFEFEFEULL;  // Not in file A
-const  bb64  NOT_AB = 0xFCFCFCFCFCFCFCFCULL;  // Not in file A and B
-const  bb64  NOT_H  = 0x7F7F7F7F7F7F7F7FULL;  // Not in file H
-const  bb64  NOT_GH = 0x3F3F3F3F3F3F3F3FULL;  // Not in file G and H
 
 /* Prints the bit representation of a position */
 void print_bitboard(bb64 bb)
@@ -46,7 +42,9 @@ void print_board(const Position *pos)
             int pc = -1;
 
             for (int pcidx = W_PAWN; pcidx <= B_KING; pcidx++)
-                if (getbit(pos->pcbb[pcidx], sq)) { pc = pcidx; break; }
+                if (getbit(pos->pcbb[pcidx], sq)) {
+                    pc = pcidx; break;
+                }
 
             putchar(' ');
             putchar(pc == -1 ? '.' : pc_ascii[pc]);
@@ -69,10 +67,12 @@ void print_board(const Position *pos)
 
     printf("  HM clock: %d\n", pos->hmclock);
 
-    printf("  FM count: %d\n\n", pos->fmcount);
+    printf("  FM count: %d\n", pos->fmcount);
+
+    printf("   Zobrist: 0x%llx\n\n", pos->zobrist);
 }
 
-void reset_board(Position * pos)
+void reset_board(Position *pos)
 {
     memset(pos, 0, sizeof(Position));
     pos->side = 0;
@@ -138,10 +138,10 @@ bool parse_fen(const char *fen, Position *pos)
 
     /* Set castling rights */
     pos->castling = 0;
-    if (*ptr == '-')
+    if (*ptr == '-') {
         ptr++;
-    else
-    {
+    }
+    else {
         for (; *ptr && *ptr != ' '; ptr++)
         {
             switch (*ptr) {
@@ -159,13 +159,11 @@ bool parse_fen(const char *fen, Position *pos)
     ptr++;
 
     /* Set en passant square */
-    if (*ptr == '-')
-    {
-        pos->enpassant = -1;
+    if (*ptr == '-') {
+        pos->enpassant = none;
         ptr++;
     }
-    else
-    {
+    else {
         if (!ptr[0] || !ptr[1]) return false;
         int sq = sqtoidx(ptr);
         if (sq < 0) return false;
@@ -207,6 +205,8 @@ bool parse_fen(const char *fen, Position *pos)
                  pos->pcbb[B_QUEEN] | pos->pcbb[B_KING];
 
     pos->both  = pos->white | pos->black;
+
+    pos->zobrist = gen_key(*pos);
 
     return true;
 }

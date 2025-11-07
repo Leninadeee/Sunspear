@@ -87,7 +87,7 @@ static const int ksqtable[] = {
     0,  0, 10,  0,-15,  0, 15,  0
 };
 
-extern  int  main_eval(const Position *);
-extern  int  material_eval(const Position *);
+extern  int  main_eval(const Position *P);
+extern  int  material_eval(const Position *P);
 
 #endif /* EVAL_H */

@@ -27,31 +27,32 @@ ull perft(Position *P, int depth)
     return nodes;
 }
 
-void perft_test(const char *fen, const ull *expected)
+void perft_test(const char *fen, const ull *expected, int depth)
 {
     int start = gettime();
     Position pos = {0};
     parse_fen(fen, &pos);
 
-    for (int depth = 1; depth <= MAX_DEPTH; depth++)
+    for (int d = 1; d <= depth; d++)
     {
-        ull actual = perft(&pos, depth);
+        ull actual = perft(&pos, d);
         ull time_elapsed = gettime() - start;
-        char *res  = (actual == expected[depth]) ? "PASS" : "FAIL";
+        char *res  = (actual == expected[d]) ? "PASS" : "FAIL";
         printf("%s  Depth=%d  Actual=%-10llu  Expected=%-10llu  Time: %6llums\n",
-                res, depth, actual, expected[depth], time_elapsed);
+                res, d, actual, expected[d], time_elapsed);
     }
     printf("\n");
 }
 
-void perft_driver()
+void perft_driver(int depth)
 {
+    depth = (depth > MAX_DEPTH) ? MAX_DEPTH : depth;
     printf("Beginning perft tests...\n");
-    perft_test(POS1, pos1);
-    perft_test(POS2, pos2);
-    perft_test(POS3, pos3);
-    perft_test(POS4, pos4);
-    perft_test(POS5, pos5);
-    perft_test(POS6, pos6);
+    perft_test(POS1, pos1, depth);
+    perft_test(POS2, pos2, depth);
+    perft_test(POS3, pos3, depth);
+    perft_test(POS4, pos4, depth);
+    perft_test(POS5, pos5, depth);
+    perft_test(POS6, pos6, depth);
     printf("Perft tests complete.\n");
 }

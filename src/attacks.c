@@ -3,6 +3,11 @@
 #include "attacks.h"
 #include "bitboard.h"
 
+const  bb64  NOT_A  = 0xFEFEFEFEFEFEFEFEULL;  // Not in file A
+const  bb64  NOT_AB = 0xFCFCFCFCFCFCFCFCULL;  // Not in file A and B
+const  bb64  NOT_H  = 0x7F7F7F7F7F7F7F7FULL;  // Not in file H
+const  bb64  NOT_GH = 0x3F3F3F3F3F3F3F3FULL;  // Not in file G and H
+
 bb64 bmask[64];     /* All bishop attack masks  */
 bb64 rmask[64];     /* All rook attack masks    */
 

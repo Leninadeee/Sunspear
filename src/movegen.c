@@ -3,6 +3,8 @@
 
 #include "attacks.h"
 #include "movegen.h"
+#include "tt.h"
+#include "uci.h"
 
 static inline void emit_move(MoveList *M, int src, int dst, Piece pc,
                              Piece promo, Piece target, bool cap, bool dbl,
@@ -114,8 +116,7 @@ static inline void gen_pawn_captures(const Position *P, MoveList *M, Color c)
         }
 
         /* En passant captures */
-        if (P->enpassant != none)
-        {
+        if (P->enpassant != none) {
             bb64 enpmask = ptable[c][src] & (1ULL << P->enpassant);
             if (enpmask) {
                 int dst = lsb(enpmask);
@@ -143,8 +144,7 @@ static inline void gen_castles(const Position* P, MoveList *M, Color c)
     bb64  occ = P->both;
     Piece pc  = (c == WHITE) ? W_KING : B_KING;
 
-    if (c == WHITE)
-    {
+    if (c == WHITE) {
         if (P->castling & CASTLE_WK)
         {
             if (!(occ & ((1ULL << f1) | (1ULL << g1))) &&
@@ -164,8 +164,7 @@ static inline void gen_castles(const Position* P, MoveList *M, Color c)
             }
         }
     }
-    else
-    {
+    else {
         if (P->castling & CASTLE_BK)
         {
             if (!(occ & ((1ULL << f8) | (1ULL << g8))) &&
@@ -177,7 +176,7 @@ static inline void gen_castles(const Position* P, MoveList *M, Color c)
         }
         if (P->castling & CASTLE_BQ)
         {
-            if (!(occ & ((1ULL << b8)|(1ULL << c8) | (1ULL << d8))) &&
+            if (!(occ & ((1ULL << b8) | (1ULL << c8) | (1ULL << d8))) &&
                 !checksquare(P, WHITE, e8) &&
                 !checksquare(P, WHITE, d8))
             {
@@ -263,10 +262,13 @@ void gen_all(const Position *P, MoveList *M, GenMode mode)
 {
     const Color side = (Color)P->side;
 
-    if (mode == GEN_ALL) gen_pawn_pushes(P, M, side);
+    if (mode == GEN_ALL) {
+        gen_pawn_pushes(P, M, side);
+        gen_castles(P, M, side);
+    }
+
     gen_pawn_captures(P, M, side);
     gen_king_moves(mode, P, M, side);
-    if (mode == GEN_ALL) gen_castles(P, M, side);
     gen_knight_moves(mode, P, M, side);
     gen_bishop_moves(mode, P, M, side);
     gen_rook_moves(mode, P, M, side);
@@ -284,27 +286,43 @@ bool make_move(Position *P, uint32_t encoding)
 
     /* Moves initiating piece */
     clrbit(P->pcbb[pc], src);
+    P->zobrist ^= Z_PSQ[pc][src];
     setbit(P->pcbb[pc], dst);
+    P->zobrist ^= Z_PSQ[pc][dst];
 
-    if (cap) {
+    if (cap && !enp) {
         clrbit(P->pcbb[target], dst);
+        P->zobrist ^= Z_PSQ[target][dst];
     }
 
     if (promo) {
         clrbit(P->pcbb[pc], dst);
+        P->zobrist ^= Z_PSQ[pc][dst];
         setbit(P->pcbb[promo], dst);
+        P->zobrist ^= Z_PSQ[promo][dst];
     }
 
     if (enp) {
-        if (P->side == WHITE) clrbit(P->pcbb[B_PAWN], dst + 8);
-        else                  clrbit(P->pcbb[W_PAWN], dst - 8);
+        if (P->side == WHITE) {
+            clrbit(P->pcbb[B_PAWN], dst + 8);
+            P->zobrist ^= Z_PSQ[B_PAWN][dst + 8];
+        }
+        else {
+            clrbit(P->pcbb[W_PAWN], dst - 8);
+            P->zobrist ^= Z_PSQ[W_PAWN][dst - 8];
+        }
     }
 
-    P->enpassant = none;
+    if (P->enpassant != none)
+        P->zobrist ^= Z_EP[P->enpassant];
+
+    P->enpassant = none; 
 
     if (dbl) {
         if (P->side == WHITE) P->enpassant = dst + 8;
         else                  P->enpassant = dst - 8;
+
+        P->zobrist ^= Z_EP[(P->side == WHITE) ? dst + 8 : dst - 8];
     }
 
     if (cstl) {
@@ -312,27 +330,36 @@ bool make_move(Position *P, uint32_t encoding)
         {
             case g1:    /* White king side castle */
                 clrbit(P->pcbb[W_ROOK], h1);
+                P->zobrist ^= Z_PSQ[W_ROOK][h1];
                 setbit(P->pcbb[W_ROOK], f1);
+                P->zobrist ^= Z_PSQ[W_ROOK][f1];
                 break;
             case c1:    /* White queen side castle */
                 clrbit(P->pcbb[W_ROOK], a1);
+                P->zobrist ^= Z_PSQ[W_ROOK][a1];
                 setbit(P->pcbb[W_ROOK], d1);
+                P->zobrist ^= Z_PSQ[W_ROOK][d1];
                 break;
             case g8:    /* Black king side castle */
                 clrbit(P->pcbb[B_ROOK], h8);
+                P->zobrist ^= Z_PSQ[B_ROOK][h8];
                 setbit(P->pcbb[B_ROOK], f8);
+                P->zobrist ^= Z_PSQ[B_ROOK][f8];
                 break;
             case c8:    /* Black queen side castle */
                 clrbit(P->pcbb[B_ROOK], a8);
+                P->zobrist ^= Z_PSQ[B_ROOK][a8];
                 setbit(P->pcbb[B_ROOK], d8);
+                P->zobrist ^= Z_PSQ[B_ROOK][d8];
                 break;
             default:
                 assert(0);
         }
     }
-
+    P->zobrist  ^= Z_CSTL[P->castling];
     P->castling &= cstlmask[src];
     P->castling &= cstlmask[dst];
+    P->zobrist  ^= Z_CSTL[P->castling];
 
     P->white = P->pcbb[W_PAWN] | P->pcbb[W_KNIGHT] | P->pcbb[W_BISHOP] |
                P->pcbb[W_ROOK] | P->pcbb[W_QUEEN]  | P->pcbb[W_KING];
@@ -342,17 +369,19 @@ bool make_move(Position *P, uint32_t encoding)
     
     P->both = P->white | P->black;
 
-    Square sq = (P->side == WHITE) ? lsb(P->pcbb[W_KING]) :
-                                     lsb(P->pcbb[B_KING]); 
+    P->side ^= 1;
+    P->zobrist ^= Z_SIDE;
+
+    Square sq = (P->side == WHITE) ? lsb(P->pcbb[B_KING]) :
+                                     lsb(P->pcbb[W_KING]); 
     
-    if (checksquare(P, P->side^1, sq)) {
+    if (checksquare(P, P->side, sq)) {
         *P = prev; return false;
     }
 
-    P->side ^= 1;
-
     return true;
 }
+
 
 void add_move(MoveList *M, uint32_t move)
 {
@@ -369,7 +398,9 @@ void print_moves(const MoveList *M)
     {
         char src[3]; idxtosq(dcdsrc(M->moves[i]), src);
         char dst[3]; idxtosq(dcddst(M->moves[i]), dst);
+
         char c = idxtopc((dcdpromo(M->moves[i]) % 6) + 6);
+        
         printf("    %s%s%c  %c   %d   %d   %d   %d\n",
                     src, dst, (c == 'p') ? ' ' : c,
                     idxtopc(dcdpc(M->moves[i])),

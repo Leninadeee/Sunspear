@@ -4,6 +4,112 @@
 #include "eval.h"
 #include "movegen.h"
 #include "search.h"
+#include "tt.h"
+
+static inline bool end_or_quiesce(SearchCtx *Ctx, int depth, int ply,
+                                  int alpha, int beta, int *out_eval)
+{
+    Ctx->Ord.pv_len[ply] = ply;
+    if (depth == 0) {
+        Ctx->Ord.pv_len[ply] = ply;
+        *out_eval = quiesce(&Ctx->Pos, alpha, beta, &Ctx->nodecnt);
+        return true;
+    }
+    if (ply >= MAX_PLY) {
+        *out_eval = main_eval(&Ctx->Pos);
+        return true;
+    }
+    return false;
+}
+
+static inline bool try_null_move(SearchCtx *Ctx, int depth, int ply,
+                                 bool in_check, int beta, int *out_eval)
+{
+    if (depth >= R_FACTOR + 1 && in_check == false && ply) {
+        Position prev = Ctx->Pos;
+        Ctx->Pos.side ^= 1;
+        Ctx->Pos.enpassant = none;
+        int eval = -negamax(Ctx, depth - 1 - R_FACTOR, ply + 1,
+                            -beta, -beta + 1, false);
+        Ctx->Pos = prev;
+        if (eval >= beta) {
+            *out_eval = beta;
+            return true;
+        }
+    }
+    return false;
+}
+
+static inline void fill_movelist(SearchCtx *Ctx, MoveList *ml, int ply)
+{
+    *ml = (MoveList){0};
+    gen_all(&Ctx->Pos, ml, GEN_ALL);
+    if (Ctx->Ord.follow_pv[ply])
+        enable_pv_scoring(&Ctx->Ord, ml, ply);
+    score_all(ml, &Ctx->Ord, ply);
+}
+
+static inline int pvs_lmr_search(SearchCtx *Ctx, int depth, int ply,
+                                 int alpha, int beta, bool in_check,
+                                 uint32_t move, int nsearched)
+{
+    if (nsearched == 0) {
+        return -negamax(Ctx, depth - 1, ply + 1, -beta, -alpha, true);
+    }
+    else {
+        int eval;
+        if (nsearched >= NFULL_DEPTHS &&
+            depth >= LMR_LIMIT &&
+            in_check == false &&
+            !dcdcap(move) &&
+            !dcdpromo(move)) {
+            eval = -negamax(Ctx, depth - 2, ply + 1, -alpha - 1, -alpha, true);
+        }
+        else {
+            eval = alpha + 1;
+        }
+
+        if (eval > alpha) {
+            eval = -negamax(Ctx, depth - 1, ply + 1, -alpha - 1, -alpha, true);
+            if (eval > alpha && eval < beta) {
+                eval = -negamax(Ctx, depth - 1, ply + 1, -beta, -alpha, true);
+            }
+        }
+        return eval;
+    }
+}
+
+static inline void update_klr(SearchCtx *Ctx, int ply, uint32_t mv)
+{
+    if (!dcdcap(mv)) {
+        Ctx->Ord.klr_table[1][ply] = Ctx->Ord.klr_table[0][ply];
+        Ctx->Ord.klr_table[0][ply] = mv;
+    }
+}
+
+static inline void update_hist(SearchCtx *Ctx, int depth, uint32_t mv)
+{
+    if (!dcdcap(mv)) {
+        Piece pc = dcdpc(mv);
+        int dst  = dcddst(mv);
+        Ctx->Ord.hist_table[pc][dst] += depth;
+    }
+}
+
+static inline void update_pv(SearchCtx *Ctx, int ply, uint32_t mv)
+{
+    Ctx->Ord.pv_table[ply][ply] = mv;
+    for (int j = ply + 1; j < Ctx->Ord.pv_len[ply + 1]; j++)
+        Ctx->Ord.pv_table[ply][j] = Ctx->Ord.pv_table[ply + 1][j];
+    Ctx->Ord.pv_len[ply] = Ctx->Ord.pv_len[ply + 1];
+}
+
+static inline bool test_king(const Position *P)
+{
+    Color us = (Color)P->side;
+    int ksq  = lsb(P->pcbb[us ? B_KING : W_KING]);
+    return checksquare(P, (Color)(us ^ 1), ksq);
+}
 
 int negamax(SearchCtx *Ctx, int depth, int ply, int alpha, int beta,
             bool f_null)
@@ -12,109 +118,49 @@ int negamax(SearchCtx *Ctx, int depth, int ply, int alpha, int beta,
     if (g_tc.stop_now)
         return alpha;
 
-    Ctx->Ord.pv_len[ply] = ply;
-    
-    if (depth == 0) {
-        Ctx->Ord.pv_len[ply] = ply;
-        return quiesce(&Ctx->Pos, alpha, beta, &Ctx->nodecnt);
-    }
-
-    if (ply >= MAX_PLY)
-        return main_eval(&Ctx->Pos);
+    int out_eval;
+    if (end_or_quiesce(Ctx, depth, ply, alpha, beta, &out_eval))
+        return out_eval;
 
     Ctx->nodecnt++;
 
-    bool in_check = checksquare(&Ctx->Pos, (Color)(Ctx->Pos.side ^ 1),
-                        lsb(Ctx->Pos.pcbb[Ctx->Pos.side ? B_KING : W_KING]));
+    bool in_check = test_king(&Ctx->Pos);
     bool gameover = true;
 
-    if (f_null == true && depth >= R_FACTOR + 1 && in_check == false && ply)
-    {
-        Position prev = Ctx->Pos;
-        Ctx->Pos.side ^= 1;
-        Ctx->Pos.enpassant = none;
-        int eval = -negamax(Ctx, depth - 1 - R_FACTOR, ply + 1,
-                            -beta, -beta + 1, false);
-        *(&Ctx->Pos) = prev;
-        if (eval >= beta)
-            return beta;
-    }
+    if (f_null && try_null_move(Ctx, depth, ply, in_check, beta, &out_eval))
+        return out_eval;
 
     int nsearched = 0;
 
-    MoveList ml = (MoveList){0};
-    gen_all(&Ctx->Pos, &ml, GEN_ALL);
-
-    if (Ctx->Ord.follow_pv[ply])
-        enable_pv_scoring(&Ctx->Ord, &ml, ply);
-
-    score_all(&ml, &Ctx->Ord, ply);
+    MoveList ml;
+    fill_movelist(Ctx, &ml, ply);
 
     for (int i = 0; i < ml.nmoves; i++) {
         Position prev = Ctx->Pos;
+
         get_ordered_move(&ml, i);
         if (!make_move(&Ctx->Pos, ml.moves[i])) continue;
         gameover = false;
 
-        Ctx->Ord.follow_pv[ply + 1] = Ctx->Ord.follow_pv[ply] &&
-                                  (ml.moves[i] == Ctx->Ord.pv_table[0][ply]);
+        Ctx->Ord.follow_pv[ply + 1] =
+            Ctx->Ord.follow_pv[ply] && (ml.moves[i] == Ctx->Ord.pv_table[0][ply]);
 
-        int eval;
+        int eval = pvs_lmr_search(Ctx, depth, ply, alpha, beta,
+                                             in_check, ml.moves[i], nsearched);
 
-        if (nsearched == 0) {
-            eval = -negamax(Ctx, depth - 1, ply + 1, -beta, -alpha, true);
-        }
-        else {
-            if (
-                nsearched >= NFULL_DEPTHS &&
-                depth >= LMR_LIMIT &&
-                in_check == false &&
-                !dcdcap(ml.moves[i]) &&
-                !dcdpromo(ml.moves[i])
-            )
-                eval = -negamax(Ctx, depth - 2, ply + 1,
-                                -alpha - 1, -alpha, true);
-            else
-                eval = alpha + 1;
-
-            if (eval > alpha)
-            {
-                eval = -negamax(Ctx, depth - 1, ply + 1,
-                                -alpha - 1, -alpha, true);
-                                
-                if ((eval > alpha) && (eval < beta))
-                {
-                    eval = -negamax(Ctx, depth - 1, ply + 1,
-                                    -beta, -alpha, true);
-                }
-            }
-        }
-
-        *(&Ctx->Pos) = prev;
+        Ctx->Pos = prev;
+        if (g_tc.stop_now) return alpha;
         nsearched++;
 
         if (eval >= beta) {
-            if (dcdcap(ml.moves[i]) == false) {
-                Ctx->Ord.klr_table[1][ply] = Ctx->Ord.klr_table[0][ply];
-                Ctx->Ord.klr_table[0][ply] = ml.moves[i];
-            }
+            update_klr(Ctx, ply, ml.moves[i]);
             return beta;
         }
 
         if (eval > alpha) {
-            if (dcdcap(ml.moves[i]) == false) {
-                Piece pc = dcdpc(ml.moves[i]);
-                int dst = dcddst(ml.moves[i]);
-                Ctx->Ord.hist_table[pc][dst] += depth;
-            }
-
+            update_hist(Ctx, depth, ml.moves[i]);
             alpha = eval;
-
-            Ctx->Ord.pv_table[ply][ply] = ml.moves[i];
-
-            for (int j = ply + 1; j < Ctx->Ord.pv_len[ply + 1]; j++)
-                Ctx->Ord.pv_table[ply][j] = Ctx->Ord.pv_table[ply + 1][j];
-            Ctx->Ord.pv_len[ply] = Ctx->Ord.pv_len[ply + 1];
+            update_pv(Ctx, ply, ml.moves[i]);
         }
     }
 
@@ -153,6 +199,8 @@ int quiesce(Position *P, int alpha, int beta, uint64_t *nodecnt)
         int eval = -quiesce(P, -beta, -alpha, nodecnt);
 
         *P = prev;
+        if (g_tc.stop_now)
+            return alpha;
 
         if (eval >= beta)
             return beta;
