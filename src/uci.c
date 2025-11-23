@@ -5,12 +5,15 @@
 #include "bitboard.h"
 #include "movegen.h"
 #include "search.h"
+#include "tinycthread.h"
 #include "types.h"
 #include "uci.h"
+#include "tt.h"
 
 #define  START_POS  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 TimeCntl g_tc;
+static thrd_t search_thrd;
 
 void uci_print_move(uint32_t mv)
 {
@@ -103,7 +106,6 @@ void parse_position(Position *P, char *cmd)
     }
 }
 
-
 void search(SearchCtx *Ctx, int depth)
 {
     assert(depth > 0);
@@ -119,6 +121,7 @@ void search(SearchCtx *Ctx, int depth)
         memset(Ctx->Ord.score_pv,  0, MAX_PLY);
         Ctx->Ord.follow_pv[0] = true;
 
+        if (g_tc.stop_now) break;
         g_tc.abort_iter = false;
 
         eval = negamax(Ctx, d, 0, -INF, INF, true);
@@ -128,6 +131,7 @@ void search(SearchCtx *Ctx, int depth)
             uci_print_move(Ctx->Ord.pv_table[0][i]); printf(" ");
         }
         printf("\n");
+        fflush(stdout);
 
         if (g_tc.abort_iter || g_tc.stop_now) break;
     }
@@ -135,6 +139,7 @@ void search(SearchCtx *Ctx, int depth)
     uint32_t mv = Ctx->Ord.pv_table[0][0];
     if (!mv) { printf("bestmove 0000\n"); return; }
     printf("bestmove "); uci_print_move(mv); printf("\n");
+    fflush(stdout);
 }
 
 
@@ -234,6 +239,19 @@ void time_setup(const GoParams *gp, const Position *P)
     g_tc.hard_ms = hardcap;
 }
 
+static int thread_func(void *arg)
+{
+    SearchCtx *sc = (SearchCtx *)arg;
+    search(sc, sc->d_limit);   
+    return 0;
+}
+
+static void thread_start(SearchCtx *Ctx, int depth)
+{
+    Ctx->d_limit = depth;
+    thrd_create(&search_thrd, thread_func, Ctx);
+}
+
 void parse_go(SearchCtx *Ctx, char *cmd)
 {
     GoParams gp;
@@ -245,7 +263,13 @@ void parse_go(SearchCtx *Ctx, char *cmd)
         memset(&g_tc, 0, sizeof g_tc);
     }
 
-    search(Ctx, max_depth);
+    thread_start(Ctx, max_depth);
+}
+
+void handle_stop(void)
+{
+    g_tc.stop_now = true;
+    thrd_join(search_thrd, NULL);
 }
 
 void uci_loop(SearchCtx *Ctx)
@@ -269,9 +293,11 @@ void uci_loop(SearchCtx *Ctx)
         }
         else if (!strncmp(buf, "position", 8)) {
             parse_position(&Ctx->Pos, buf);
+            tt_clear();
         }
         else if (!strncmp(buf, "ucinewgame", 10)) {
             parse_position(&Ctx->Pos, "position startpos");
+            tt_clear();
         }
         else if (!strncmp(buf, "go", 2)) {
             parse_go(Ctx, buf);
@@ -282,7 +308,7 @@ void uci_loop(SearchCtx *Ctx)
             printf("uciok\n");
         }
         else if (!strncmp(buf, "stop", 4)) {
-            g_tc.stop_now = true;
+            handle_stop();
         }
         else if (!strncmp(buf, "quit", 4)) {
             break;

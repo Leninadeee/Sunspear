@@ -86,6 +86,7 @@ typedef struct
     Position     Pos;
     OrderTables  Ord;
     uint64_t     nodecnt;
+    int          d_limit;
 }
 SearchCtx;
 
@@ -128,11 +129,10 @@ GoParams;
 
 typedef struct
 {
-    uint64_t key;
-    uint32_t move;
-    int      depth;
-    int      eval;
-    int      flag;
+    uint64_t  key;
+    int32_t   eval;
+    uint16_t  depth;
+    uint16_t  flag;
 }
 TTentry;
 

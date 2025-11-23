@@ -5,11 +5,11 @@
 
 #define  INIT_SEED  1804289383
 
-#define  TT_EXACT  0
-#define  TT_ALPHA  1
-#define  TT_BETA   2
-#define  TT_EMPTY  60000
-#define  TT_SIZE   0x400000
+#define  TT_EXACT   0
+#define  TT_ALPHA   1
+#define  TT_BETA    2
+#define  TT_UNKNOWN 60000
+#define  TT_SIZE    0x400000
 
 /* Zobrist Hashing Schema */
 extern  uint32_t  seed;
@@ -23,9 +23,9 @@ extern  TTentry   TTable[TT_SIZE];
 // d=depth a=alpha b=beta
 extern  void      init_zobrist(void);
 extern  uint64_t  gen_key(Position P);
-extern  uint64_t  tt_read(uint64_t zob, int d, int a, int b, OrderTables *O);
-extern  void      tt_write(uint64_t zob, int d, int eval, int flag,
-                           uint32_t mv);
+extern  int       tt_read(uint64_t zob, int d, int a, int b);
+extern  void      tt_write(uint64_t zob, int d, int eval, int flag);
+extern  void      tt_clear(void);
 
 static inline uint32_t prng32()
 {

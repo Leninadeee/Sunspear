@@ -1,7 +1,7 @@
 CC      := gcc
 CFLAGS  := -O3 -Wall -Wextra -std=c23 -mbmi2
-INCLUDE := -I./includes
-SRC     := src/*
+INCLUDE := -I./includes -I./deps
+SRC     := src/* deps/tinycthread.c
 BIN     := engine
 
 all: $(BIN)

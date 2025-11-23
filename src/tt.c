@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "bitboard.h"
 #include "tt.h"
@@ -50,12 +51,11 @@ extern uint64_t gen_key(Position pos)
     return key;
 }
 
-uint64_t tt_read(uint64_t zobrist, int depth, int alpha, int beta,
-                 OrderTables *Ord)
+int tt_read(uint64_t zobrist, int depth, int alpha, int beta)
 {
     const TTentry *E = &TTable[zobrist % TT_SIZE];
 
-    if (E->key != zobrist) {
+    if (E->key == zobrist) {
         if (E->depth >= depth) {
             if (E->flag == TT_EXACT)
                 return E->eval;
@@ -64,19 +64,22 @@ uint64_t tt_read(uint64_t zobrist, int depth, int alpha, int beta,
             if (E->flag == TT_BETA && E->eval >= beta)
                 return beta;
         }
-        Ord->tt_moves[depth] = E->move;
     }
 
-    return TT_EMPTY;
+    return TT_UNKNOWN;
 }
 
-void tt_write(uint64_t zobrist, int depth, int eval, int flag, uint32_t mv)
+void tt_write(uint64_t zobrist, int depth, int eval, int flag)
 {
     TTentry *E = &TTable[zobrist % TT_SIZE];
 
     E->key   = zobrist;
-    E->move  = mv;
     E->depth = depth;
     E->eval  = eval;
     E->flag  = flag;
+}
+
+void tt_clear(void)
+{
+    memset(TTable, 0, sizeof(TTable));
 }
