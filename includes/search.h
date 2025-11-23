@@ -13,6 +13,7 @@
 
 #define  INF    50000
 #define  MATE   49000
+#define  ASP_WINDOW  50
 
 #define  NFULL_DEPTHS   4
 #define  LMR_LIMIT      3

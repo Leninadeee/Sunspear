@@ -11,7 +11,6 @@ static inline bool end_or_quiesce(SearchCtx *Ctx, int depth, int ply,
 {
     Ctx->Ord.pv_len[ply] = ply;
     if (depth == 0) {
-        Ctx->Ord.pv_len[ply] = ply;
         *out_eval = quiesce(&Ctx->Pos, ply + 1, alpha, beta, &Ctx->nodecnt);
         return true;
     }
@@ -129,7 +128,8 @@ int negamax(SearchCtx *Ctx, int depth, int ply, int alpha, int beta,
         return alpha;
 
     int val;
-    if (ply && (val = tt_read(Ctx->Pos.zobrist, depth, alpha, beta))
+    bool is_pv_node = (beta - alpha) > 1;
+    if (ply && !is_pv_node && (val = tt_read(Ctx->Pos.zobrist, depth, ply, alpha, beta))
         != TT_UNKNOWN)
     {
        return val;
@@ -169,17 +169,17 @@ int negamax(SearchCtx *Ctx, int depth, int ply, int alpha, int beta,
         if (g_tc.stop_now) return alpha;
         nsearched++;
 
-        if (eval >= beta) {
-            tt_write(Ctx->Pos.zobrist, depth, beta, TT_BETA);
-            update_klr(Ctx, ply, ml.moves[i]);
-            return beta;
-        }
-
         if (eval > alpha) {
             update_hist(Ctx, depth, ml.moves[i]);
             alpha = eval;
             update_pv(Ctx, ply, ml.moves[i]);
             tt_flag = TT_EXACT;
+
+            if (eval >= beta) {
+                tt_write(Ctx->Pos.zobrist, depth, ply, beta, TT_BETA);
+                update_klr(Ctx, ply, ml.moves[i]);
+                return beta;
+            }
         }
     }
 
@@ -188,7 +188,7 @@ int negamax(SearchCtx *Ctx, int depth, int ply, int alpha, int beta,
         return in_check ? (-MATE + ply) : 0;
     }
 
-    tt_write(Ctx->Pos.zobrist, depth, alpha, tt_flag);
+    tt_write(Ctx->Pos.zobrist, depth, ply, alpha, tt_flag);
     return alpha;
 }
 

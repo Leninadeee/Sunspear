@@ -14,6 +14,7 @@
 
 TimeCntl g_tc;
 static thrd_t search_thrd;
+static uint64_t timestamp;
 
 void uci_print_move(uint32_t mv)
 {
@@ -110,23 +111,44 @@ void search(SearchCtx *Ctx, int depth)
 {
     assert(depth > 0);
 
+    int alpha = -INF;
+    int beta  = INF;
     int eval;
 
     memset(&Ctx->Ord, 0, sizeof(OrderTables));
 
     for (int d = 1; d <= depth; d++)
     {
-        Ctx->nodecnt = 0;
-        memset(Ctx->Ord.follow_pv, 0, MAX_PLY);
-        memset(Ctx->Ord.score_pv,  0, MAX_PLY);
         Ctx->Ord.follow_pv[0] = true;
-
+        
+    Ctx->nodecnt = 0;
         if (g_tc.stop_now) break;
         g_tc.abort_iter = false;
 
-        eval = negamax(Ctx, d, 0, -INF, INF, true);
+        eval = negamax(Ctx, d, 0, alpha, beta, true);
 
-        printf("info score cp %d depth %d nodes %lld pv ", eval, d, Ctx->nodecnt);
+        if (eval <= alpha || eval >= beta) {
+            alpha = -INF;
+            beta  = INF;
+            d--;
+            continue;
+        }
+
+        alpha = eval - ASP_WINDOW;
+        beta  = eval + ASP_WINDOW;
+
+        uint64_t time = time_ms() - timestamp;
+
+        if (eval > -MATE && eval < -MATE_BOUND) 
+            printf("info score mate %d depth %d nodes %lld time %lld pv ",
+                    -(eval + MATE) / 2 - 1, d, Ctx->nodecnt, time);
+        else if (eval > MATE_BOUND && eval < MATE)
+            printf("info score mate %d depth %d nodes %lld time %lld pv ",
+                    (MATE - eval) / 2 + 1, d, Ctx->nodecnt, time);
+        else
+            printf("info score cp %d depth %d nodes %lld time %lld pv ",
+                    eval, d, Ctx->nodecnt, time);
+
         for (int i = 0; i < Ctx->Ord.pv_len[0]; i++) {
             uci_print_move(Ctx->Ord.pv_table[0][i]); printf(" ");
         }
@@ -262,7 +284,8 @@ void parse_go(SearchCtx *Ctx, char *cmd)
     if (gp.depth > 0) {
         memset(&g_tc, 0, sizeof g_tc);
     }
-
+    
+    timestamp = time_ms();
     thread_start(Ctx, max_depth);
 }
 
