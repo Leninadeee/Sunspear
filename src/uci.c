@@ -302,6 +302,10 @@ void uci_loop(SearchCtx *Ctx)
 
     char buf[MAXLEN];
 
+    printf("id name Sunspear\n");
+    printf("id author Leninadeee\n");
+    printf("uciok\n");
+
     while (1) {
         memset(buf, 0, MAXLEN);
         fflush(stdout);
@@ -326,7 +330,7 @@ void uci_loop(SearchCtx *Ctx)
             parse_go(Ctx, buf);
         }
         else if (!strncmp(buf, "uci", 3)) {
-            printf("id name stackphish\n");
+            printf("id name Sunspear\n");
             printf("id author Leninadeee\n");
             printf("uciok\n");
         }
