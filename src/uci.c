@@ -121,7 +121,7 @@ void search(SearchCtx *Ctx, int depth)
     {
         Ctx->Ord.follow_pv[0] = true;
         
-    Ctx->nodecnt = 0;
+        Ctx->nodecnt = 0;
         if (g_tc.stop_now) break;
         g_tc.abort_iter = false;
 
@@ -138,16 +138,17 @@ void search(SearchCtx *Ctx, int depth)
         beta  = eval + ASP_WINDOW;
 
         uint64_t time = time_ms() - timestamp;
+        uint32_t nps  = (time > 0) ? (uint32_t)(Ctx->nodecnt * 1000 / time) : 0;
 
         if (eval > -MATE && eval < -MATE_BOUND) 
-            printf("info score mate %d depth %d nodes %lld time %lld pv ",
-                    -(eval + MATE) / 2 - 1, d, Ctx->nodecnt, time);
+            printf("info score mate %d depth %d nodes %lld nps %d time %lld pv ",
+                    -(eval + MATE) / 2 - 1, d, Ctx->nodecnt, nps, time);
         else if (eval > MATE_BOUND && eval < MATE)
-            printf("info score mate %d depth %d nodes %lld time %lld pv ",
-                    (MATE - eval) / 2 + 1, d, Ctx->nodecnt, time);
+            printf("info score mate %d depth %d nodes %lld nps %d time %lld pv ",
+                    (MATE - eval) / 2 + 1, d, Ctx->nodecnt, nps, time);
         else
-            printf("info score cp %d depth %d nodes %lld time %lld pv ",
-                    eval, d, Ctx->nodecnt, time);
+            printf("info score cp %d depth %d nodes %lld nps %d time %lld pv ",
+                    eval, d, Ctx->nodecnt, nps, time);
 
         for (int i = 0; i < Ctx->Ord.pv_len[0]; i++) {
             uci_print_move(Ctx->Ord.pv_table[0][i]); printf(" ");

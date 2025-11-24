@@ -131,6 +131,7 @@ typedef struct
 {
     uint64_t  key;
     int32_t   eval;
+    uint32_t  move;
     uint16_t  depth;
     uint16_t  flag;
 }

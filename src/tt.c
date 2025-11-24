@@ -51,7 +51,7 @@ extern uint64_t gen_key(Position pos)
     return key;
 }
 
-int tt_read(uint64_t zobrist, int depth, int ply, int alpha, int beta)
+int tt_read(uint64_t zobrist, uint32_t *mv, int depth, int ply, int alpha, int beta)
 {
     const TTentry *E = &TTable[zobrist % TT_SIZE];
 
@@ -69,12 +69,13 @@ int tt_read(uint64_t zobrist, int depth, int ply, int alpha, int beta)
             if (E->flag == TT_BETA && E->eval >= beta)
                 return beta;
         }
+        *mv = E->move;
     }
 
     return TT_UNKNOWN;
 }
 
-void tt_write(uint64_t zobrist, int depth, int ply, int eval, int flag)
+void tt_write(uint64_t zobrist, uint32_t mv, int depth, int ply, int eval, int flag)
 {
     TTentry *E = &TTable[zobrist % TT_SIZE];
 
@@ -84,6 +85,7 @@ void tt_write(uint64_t zobrist, int depth, int ply, int eval, int flag)
     E->key   = zobrist;
     E->depth = depth;
     E->eval  = eval;
+    E->move  = mv;
     E->flag  = flag;
 }
 

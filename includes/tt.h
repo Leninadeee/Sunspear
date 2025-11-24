@@ -24,8 +24,8 @@ extern  TTentry   TTable[TT_SIZE];
 // d=depth a=alpha b=beta
 extern  void      init_zobrist(void);
 extern  uint64_t  gen_key(Position P);
-extern  int       tt_read(uint64_t zob, int d, int ply, int a, int b);
-extern  void      tt_write(uint64_t zob, int d, int ply, int eval, int flag);
+extern  int       tt_read(uint64_t zob, uint32_t *mv, int d, int ply, int a, int b);
+extern  void      tt_write(uint64_t zob, uint32_t mv, int d, int ply, int eval, int flag);
 extern  void      tt_clear(void);
 
 static inline uint32_t prng32()

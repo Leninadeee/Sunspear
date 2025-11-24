@@ -50,6 +50,9 @@ static inline void enable_pv_scoring(OrderTables *ord, MoveList *ml, int ply)
 
 static inline uint32_t score_move(OrderTables *ord, int ply, uint32_t mv)
 {
+    if (ply >= 0 && ord->tt_moves[ply] == mv)
+        return TT_OFFSET;
+
     if (ply >= 0 && ord->score_pv[ply] == true) {
         if (ord->pv_table[0][ply] == mv) {
             ord->score_pv[ply] = false;
