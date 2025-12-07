@@ -63,10 +63,10 @@ int tt_read(uint64_t zobrist, uint32_t *mv, int depth, int ply, int alpha, int b
             else if (eval >  MATE_BOUND) eval -= ply;
 
             if (E->flag == TT_EXACT)
-                return E->eval;
-            if (E->flag == TT_ALPHA && E->eval <= alpha)
+                return eval;
+            if (E->flag == TT_ALPHA && eval <= alpha)
                 return alpha;
-            if (E->flag == TT_BETA && E->eval >= beta)
+            if (E->flag == TT_BETA && eval >= beta)
                 return beta;
         }
         *mv = E->move;

@@ -54,6 +54,19 @@ static inline void fill_movelist(SearchCtx *Ctx, MoveList *ml, int ply)
     score_all(ml, &Ctx->Ord, ply);
 }
 
+static inline int reduction_factor(int depth, int nsearched)
+{
+    if (depth <= 2) return 0;
+    if (nsearched <= 3) return 0;
+
+    int r = 1;
+
+    if (depth >= 5 && nsearched >= 8) r++;
+    if (depth >= 8 && nsearched >= 16) r++;
+
+    return r;
+}
+
 static inline int pvs_lmr_search(SearchCtx *Ctx, int depth, int ply,
                                  int alpha, int beta, bool in_check,
                                  uint32_t move, int nsearched)
@@ -63,15 +76,15 @@ static inline int pvs_lmr_search(SearchCtx *Ctx, int depth, int ply,
     }
     else {
         int eval;
-        if (
-            nsearched >= NFULL_DEPTHS &&
-            depth >= LMR_LIMIT &&
-            in_check == false &&
-            !dcdcap(move) &&
-            !dcdpromo(move)
-           )
-        {
-            eval = -negamax(Ctx, depth - 2, ply + 1, -alpha - 1, -alpha, true);
+        int R = 0;
+
+        if (!in_check && !dcdcap(move) && !dcdpromo(move)) {
+            R = reduction_factor(depth, nsearched);
+        }
+
+        if (R > 0) {
+            eval = -negamax(Ctx, depth - 1 - R, ply + 1,
+                            -alpha - 1, -alpha, true);
         }
         else {
             eval = alpha + 1;
@@ -122,27 +135,30 @@ static inline bool test_king(const Position *P)
 int negamax(SearchCtx *Ctx, int depth, int ply, int alpha, int beta,
             bool f_null)
 {
-    Ctx->nodecnt++;
-    time_check(Ctx->nodecnt);
+    time_check(++Ctx->nodecnt);
     if (g_tc.stop_now)
         return alpha;
 
-    int val;
+    int tt_eval = TT_UNKNOWN;
     bool is_pv_node = (beta - alpha) > 1;
-    if (ply && !is_pv_node && (val = tt_read(Ctx->Pos.zobrist, &Ctx->Ord.tt_moves[ply], depth, ply, alpha, beta))
-        != TT_UNKNOWN)
-    {
-       return val;
+    if (ply) {
+        tt_eval = tt_read(Ctx->Pos.zobrist, &Ctx->Ord.tt_moves[ply],
+                        depth, ply, alpha, beta);
+
+        if (!is_pv_node && tt_eval != TT_UNKNOWN) {
+            return tt_eval;
+        }
     }
 
     int tt_flag = TT_ALPHA;
+    
+    bool has_legal = false;
+    bool in_check = test_king(&Ctx->Pos);
+    if (in_check && depth == 0) depth = 1;
 
     int out_eval;
     if (end_or_quiesce(Ctx, depth, ply, alpha, beta, &out_eval))
         return out_eval;
-
-    bool in_check = test_king(&Ctx->Pos);
-    bool gameover = true;
 
     if (f_null && try_null_move(Ctx, depth, ply, in_check, beta, &out_eval))
         return out_eval;
@@ -154,11 +170,27 @@ int negamax(SearchCtx *Ctx, int depth, int ply, int alpha, int beta,
     fill_movelist(Ctx, &ml, ply);
 
     for (int i = 0; i < ml.nmoves; i++) {
+        get_ordered_move(&ml, i);
+        uint32_t mv = ml.moves[i];
+
         Position prev = Ctx->Pos;
 
-        get_ordered_move(&ml, i);
-        if (!make_move(&Ctx->Pos, ml.moves[i])) continue;
-        gameover = false;
+        if (!make_move(&Ctx->Pos, ml.moves[i]))
+            continue;
+        has_legal = true;
+
+        bool quiet = !dcdcap(mv) && !dcdpromo(mv);
+        if (is_pv_node == false && depth <= LMP_DEPTH && !in_check && quiet && i >= LMP_LIMIT) {
+            int hist = Ctx->Ord.hist_table[dcdpc(mv)][dcddst(mv)];
+            if (hist < 3000) {
+                Ctx->Pos = prev;
+                continue;
+            }
+        }
+
+        if (nsearched == 0) {
+            best = ml.moves[i];
+        }
 
         Ctx->Ord.follow_pv[ply + 1] = Ctx->Ord.follow_pv[ply] &&
                                     (ml.moves[i] == Ctx->Ord.pv_table[0][ply]);
@@ -185,7 +217,7 @@ int negamax(SearchCtx *Ctx, int depth, int ply, int alpha, int beta,
         }
     }
 
-    if (gameover) {
+    if (has_legal == false) {
         Ctx->Ord.pv_len[ply] = ply;
         return in_check ? (-MATE + ply) : 0;
     }
@@ -204,7 +236,7 @@ int quiesce(Position *P, int ply, int alpha, int beta, uint64_t *nodecnt)
     int static_eval = main_eval(P);
 
     if (ply >= MAX_PLY)
-        return main_eval(P);
+        return static_eval;
 
     if (static_eval >= beta)
         return beta;

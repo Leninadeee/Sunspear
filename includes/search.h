@@ -15,12 +15,14 @@
 #define  MATE   49000
 #define  ASP_WINDOW  50
 
+#define  HIST_BOUND  3000
 #define  NFULL_DEPTHS   4
-#define  LMR_LIMIT      3
-#define  R_FACTOR       2
+#define  LMP_DEPTH      2
+#define  LMP_LIMIT      8
+#define  R_FACTOR       3
 
-#define  TT_OFFSET   (1 << 30)
-#define  PV_OFFSET   (1 << 29)
+#define  TT_OFFSET   (1 << 29)
+#define  PV_OFFSET   (1 << 30)
 #define  CAP_OFFSET  (1 << 28)
 #define  KLR_OFFSET  (1 << 27)
 
@@ -50,15 +52,15 @@ static inline void enable_pv_scoring(OrderTables *ord, MoveList *ml, int ply)
 
 static inline uint32_t score_move(OrderTables *ord, int ply, uint32_t mv)
 {
-    if (ply >= 0 && ord->tt_moves[ply] == mv)
-        return TT_OFFSET;
-
     if (ply >= 0 && ord->score_pv[ply] == true) {
         if (ord->pv_table[0][ply] == mv) {
             ord->score_pv[ply] = false;
             return PV_OFFSET;
         }
     }
+
+    if (ply >= 0 && ord->tt_moves[ply] == mv)
+        return TT_OFFSET;
 
     if (dcdcap(mv) == true) {
         int a = PTYPE(dcdpc(mv));
