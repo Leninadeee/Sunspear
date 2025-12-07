@@ -1,18 +1,19 @@
 #include <stdio.h>
 
 #include "attacks.h"
+#include "tt.h"
 #include "types.h"
 #include "uci.h"
 
 int main(void)
 {
-    printf("Initializing engine...\n\n");
-
-    Position pos = {0};
+    SearchCtx Ctx = {0};
     init_leapers();
     init_sliders();
+    init_zobrist();
+    tt_clear();
 
-    uci_loop(&pos);
+    uci_loop(&Ctx);
 
     return 0;
 }
