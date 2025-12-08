@@ -3,6 +3,7 @@
 #include "attacks.h"
 #include "eval.h"
 #include "movegen.h"
+#include "pesto.h"
 #include "search.h"
 #include "tt.h"
 
@@ -15,7 +16,7 @@ static inline bool end_or_quiesce(SearchCtx *Ctx, int depth, int ply,
         return true;
     }
     if (ply >= MAX_PLY) {
-        *out_eval = main_eval(&Ctx->Pos);
+        *out_eval = pesto(&Ctx->Pos);
         return true;
     }
     return false;
@@ -233,7 +234,7 @@ int quiesce(Position *P, int ply, int alpha, int beta, uint64_t *nodecnt)
     if (g_tc.stop_now)
         return alpha;
 
-    int static_eval = main_eval(P);
+    int static_eval = pesto(P);
 
     if (ply >= MAX_PLY)
         return static_eval;
