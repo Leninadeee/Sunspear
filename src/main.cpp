@@ -1,22 +1,24 @@
 #include <iostream>
 
+#include "attacks.h"
 #include "bitboard.h"
 #include "types.h"
 #include "utils/utils.h"
 
 int main() {
 
-    Bitboard a(1ULL << static_cast<int>(Square::e4));
+    Bitboard a(1ULL << static_cast<int>(Square::a5) << 7ULL);
     //Bitboard b(1ULL << static_cast<int>(Square::a2));
 
-    Bitboard b1 = a >> shifts::DiagonalL2R1; //g3
-    Bitboard b2 = a >> shifts::DiagonalL1R2; //f2
-    Bitboard b3 = a >> shifts::DiagonalR2L1; //c3
-    Bitboard b4 = a >> shifts::DiagonalR1L2; //d2
-
-    printBitboard(a);
+    Bitboard b1 = attacks::genKingAttackSingular(Square::h8);
     printBitboard(b1);
-    printBitboard(b2);
-    printBitboard(b3);
-    printBitboard(b4);
+
+    Bitboard c = attacks::genKingAttackSingular(Square::h7);
+    printBitboard(c);
+
+    Bitboard d = attacks::genKingAttackSingular(Square::h2);
+    printBitboard(d);
+
+    Bitboard e = attacks::genKingAttackSingular(Square::h1);
+    printBitboard(e);
 }
