@@ -1,2 +1,2 @@
-# Sunspear v1.1
-C Bitboard Engine
+# Sunspear v2
+C++ rewrite
