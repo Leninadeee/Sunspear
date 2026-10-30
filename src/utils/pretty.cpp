@@ -3,7 +3,7 @@
 #include "bits.h"
 #include "pretty.h"
 
-void printBitboard(Bitboard board, std::ostream& out) {
+void util::printBitboard(Bitboard board, std::ostream& out) {
 
     for (int r = 7; r >= 0; r--) {
         for (int f = 0; f < 8; f++) {

@@ -3,22 +3,27 @@
 #include "attacks.h"
 #include "bitboard.h"
 #include "types.h"
-#include "utils/utils.h"
+#include "utils/util.h"
 
 int main() {
 
-    Bitboard a(1ULL << static_cast<int>(Square::a5) << 7ULL);
-    //Bitboard b(1ULL << static_cast<int>(Square::a2));
+    Bitboard a(1ULL << static_cast<int>(Square::a5));
 
-    Bitboard b1 = attacks::genKingAttackSingular(Square::h8);
-    printBitboard(b1);
+    Bitboard occ{};
+    occ |= Bitboard(1ULL << static_cast<int>(Square::e2));
+    occ |= Bitboard(1ULL << static_cast<int>(Square::e7));
+    occ |= Bitboard(1ULL << static_cast<int>(Square::a4));
+    occ |= Bitboard(1ULL << static_cast<int>(Square::f4));
 
-    Bitboard c = attacks::genKingAttackSingular(Square::h7);
-    printBitboard(c);
 
-    Bitboard d = attacks::genKingAttackSingular(Square::h2);
-    printBitboard(d);
+    util::printBitboard(attacks::genOccRookRays(Square::e4, occ));
+    occ &= 0;
 
-    Bitboard e = attacks::genKingAttackSingular(Square::h1);
-    printBitboard(e);
+    occ |= Bitboard(1ULL << static_cast<int>(Square::f5));
+    occ |= Bitboard(1ULL << static_cast<int>(Square::c2));
+    occ |= Bitboard(1ULL << static_cast<int>(Square::b7));
+    occ |= Bitboard(1ULL << static_cast<int>(Square::h1));
+
+
+    util::printBitboard(attacks::genOccBishopRays(Square::e4, occ));
 }

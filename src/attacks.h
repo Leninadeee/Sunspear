@@ -1,3 +1,6 @@
+#ifndef ATTACKS_H
+#define ATTACKS_H
+
 #include <array>
 
 #include "bitboard.h"
@@ -8,7 +11,6 @@ namespace attacks {
     constexpr u64 NotAB = 0xFCFCFCFCFCFCFCFCULL;  // Not in file A and B
     constexpr u64 NotH  = 0x7F7F7F7F7F7F7F7FULL;  // Not in file H
     constexpr u64 NotGH = 0x3F3F3F3F3F3F3F3FULL;  // Not in file G and H
-
 
     constexpr Bitboard genPawnAttackSingular(Square sq, Color c) {
         
@@ -52,7 +54,7 @@ namespace attacks {
         res  = (singular >> shifts::Vertical);
         res |= (singular << shifts::Vertical);
 
-        res |=  ((singular & NotA) >> shifts::Horizontal);
+        res |= ((singular & NotA) >> shifts::Horizontal);
         res |= ((singular & NotH) << shifts::Horizontal);
 
         res |= ((singular & NotA) << shifts::DiagonalLR);
@@ -63,4 +65,49 @@ namespace attacks {
         return res;
     }
 
+    constexpr Bitboard genBishopRays(Square sq) {
+        
+        Bitboard fill{};
+
+        for (auto dir : {offsets::UpLeft, offsets::UpRight, offsets::DownLeft, offsets::DownRight})
+            fill |= Bitboard::emptyFillRay(sq, dir);
+
+        return fill;
+    }
+
+     constexpr Bitboard genRookRays(Square sq) {
+        
+        Bitboard fill{};
+
+        for (auto dir : {offsets::Up, offsets::Down, offsets::Left, offsets::Right})
+            fill |= Bitboard::emptyFillRay(sq, dir);
+
+        return fill;
+    }
+
+    constexpr Bitboard genOccBishopRays(Square sq, Bitboard occ) {
+        
+        Bitboard fill{};
+
+        for (auto dir : {offsets::UpLeft, offsets::UpRight, offsets::DownLeft, offsets::DownRight})
+            fill |= Bitboard::occFillRay(sq, dir, occ);
+
+        return fill;
+    }
+
+     constexpr Bitboard genOccRookRays(Square sq, Bitboard occ) {
+        
+        Bitboard fill{};
+
+        for (auto dir : {offsets::Up, offsets::Down, offsets::Left, offsets::Right})
+            fill |= Bitboard::occFillRay(sq, dir, occ);
+
+        return fill;
+    }
+
+    //extern Bitboard occFillBishopRays(Square sq);
+    //extern Bitboard occFillRookRays(Square sq);
+
 };
+
+#endif
