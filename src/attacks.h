@@ -146,10 +146,9 @@ namespace attacks {
     auto constexpr KnightAttacks = generateKnightAttackTable();
     auto constexpr KingAttacks   = generateKingAttackTable();
 
-#if 1 // save for magics
+    #if 1 // save for magics
     struct RookDataEntry {
         Bitboard block; // all possible blocker bits set
-        Bitboard rays;  // all possible dest bits set
         u32 offset;
     };
 
@@ -177,9 +176,7 @@ namespace attacks {
             Square sq = static_cast<Square>(i);
 
             for (auto dir : RookDirections) {
-
                 table.data[i].block |= Bitboard::fillRay(sq, dir) & ~Bitboard::border(dir);
-                table.data[i].rays  |= Bitboard::fillRay(sq, dir);
             }
 
             table.data[i].offset = table.size;
@@ -211,12 +208,62 @@ namespace attacks {
     constexpr auto RookData = generateRookData();
     constexpr auto BishopData = generateBishopData();
 
-    extern std::array<u16, RookData.size> generateRookAttacks();
+    extern std::array<Bitboard, RookData.size  > generateRookAttacks();
     extern std::array<Bitboard, BishopData.size> generateBishopAttacks();
 
-    const std::array<u16, RookData.size> RookAttacks = generateRookAttacks();
+    const std::array<Bitboard, RookData.size  > RookAttacks   = generateRookAttacks();
     const std::array<Bitboard, BishopData.size> BishopAttacks = generateBishopAttacks();
-#endif
+
+    inline Bitboard getRookAttacks(Square sq, Bitboard occ) {
+
+		const auto i = static_cast<i32>(sq);
+
+		const auto &data = RookData.data[i];
+		const auto idx = util::pext(occ, data.block);
+
+		return RookAttacks[data.offset + idx];
+	}
+
+	inline Bitboard getBishopAttacks(Square sq, Bitboard occ) {
+
+		const auto i = static_cast<i32>(sq);
+
+		const auto &data = BishopData.data[i];
+		const auto idx = util::pext(occ, data.block);
+
+		return BishopAttacks[data.offset + idx];
+	}
+
+    #endif
+    
+    #if 0 // save for later
+    struct RookDataEntry {
+        Bitboard block; // all possible blocker bits set
+        Bitboard rays;  // all possible dest bits set
+        u32 offset;
+    };
+
+    struct RookData_ {
+        std::array<RookDataEntry, 64> data;
+        u32 size;
+    };
+    inline Bitboard getRookAttacks(Square sq, Bitboard occ) {
+
+		const auto i = static_cast<i32>(sq);
+
+		const auto &data = RookData.data[i];
+
+		const auto idx = util::pext(occ, data.block);
+		const auto attacks = util::pdep(RookAttacks[data.offset + idx], data.rays);
+
+		return attacks;
+	}
+
+    constexpr auto RookData = generateRookData();
+    extern std::array<u16, RookData.size> generateRookAttacks();
+    const std::array<u16, RookData.size> RookAttacks = generateRookAttacks();
+
+    #endif
 
 };
 
