@@ -12,11 +12,11 @@ namespace attacks {
         for (int sq = 0; sq < 64; sq++) {
 
             auto& data = RookData.data[sq];
-            u32 entries = 1 << util::popcount(data.block);
+            int entries = 1 << util::popcount(data.blocker);
 
             for (int idx = 0; idx < entries; idx++) {
 
-                Bitboard occ = util::pdep(idx, data.block);
+                Bitboard occ = util::pdep(idx, data.blocker);
                 table[idx + data.offset] = generateOccupancyRookRays(static_cast<Square>(sq), occ);
             }
 
@@ -32,11 +32,11 @@ namespace attacks {
         for (int sq = 0; sq < 64; sq++) {
 
             auto& data = BishopData.data[sq];
-            u32 entries = 1 << util::popcount(data.block);
+            int entries = 1 << util::popcount(data.blocker);
 
             for (int idx = 0; idx < entries; idx++) {
 
-                Bitboard occ = util::pdep(idx, data.block);
+                Bitboard occ = util::pdep(idx, data.blocker);
                 table[idx + data.offset] = generateOccupancyBishopRays(static_cast<Square>(sq), occ);
             }
 
@@ -54,11 +54,11 @@ namespace attacks {
         for (int sq = 0; sq < 64; sq++) {
 
             auto& data = RookData.data[sq];
-            u32 entries = 1 << util::popcount(data.block);
+            u32 entries = 1 << util::popcount(data.blocker);
             
             for (int idx = 0; idx < entries; idx++) {
 
-                Bitboard occ = static_cast<Bitboard>(util::pdep(idx, data.block));
+                Bitboard occ = static_cast<Bitboard>(util::pdep(idx, data.blocker));
                 Bitboard attacks = generateRookRays(static_cast<Square>(sq));
 
                 table[idx + data.offset] = static_cast<u16>(util::pext(attacks, occ));
