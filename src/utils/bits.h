@@ -22,12 +22,40 @@ namespace util {
         return i;
     }
 
-    constexpr int pext(u64 v, u64 mask) {
-        return _pext_u64(v, mask);
-    } 
+    constexpr u64 pext(u64 val, u64 mask) {
 
-    constexpr int pdep(u64 v, u64 mask) {
-        return _pdep_u64(v, mask);
+        if (std::is_constant_evaluated()) {
+
+            u64 res = 0;
+            for (u64 bb = 1; mask; mask &= mask - 1, bb <<= 1) {
+                if (val & (mask & -mask)) {
+                    res |= bb;
+                }
+            }
+
+            return res;
+        }
+        else {
+            return _pext_u64(val, mask);
+        }
+    }
+
+    constexpr u64 pdep(u64 val, u64 mask) {
+
+        if (std::is_constant_evaluated()) {
+
+            u64 res = 0;
+
+            for (u64 bb = 1; mask; mask &= mask - 1, bb <<= 1) {
+                if (val & bb) {
+                    res |= (mask & -mask);
+                }
+            }
+            return res;
+        }
+        else {
+            return _pdep_u64(val, mask);
+        }
     }
 }
 
