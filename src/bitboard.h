@@ -137,10 +137,6 @@ class Bitboard {
             return ray;
         }
 
-        //constexpr static Bitboard fillRay(Square src, int dir) {
-        //    return fillRay(src, dir, 0);
-        //}
-
     private:
         u64 m_board;
 };

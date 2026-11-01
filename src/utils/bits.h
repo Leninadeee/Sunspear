@@ -2,6 +2,7 @@
 #define BITS_H
 
 #include <immintrin.h>
+#include <type_traits>
 
 #include "../types.h"
 

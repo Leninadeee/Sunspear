@@ -5,53 +5,44 @@
 
 namespace attacks {
     
-    std::array<u16, RookData.tableSize> generateRookAttacks() {
+    std::array<u16, RookData.size> generateRookAttacks() {
 
-        std::array<u16, RookData.tableSize> tab;
+        std::array<u16, RookData.size> table;
 
-        for (u32 i = 0; i < 64; i++) {
+        for (int sq = 0; sq < 64; sq++) {
 
-            auto& data = RookData.data[i];
+            auto& data = RookData.data[sq];
             u32 entries = 1 << util::popcount(data.block);
             
-            for (u64 j = 0; j < entries; j++) {
+            for (int idx = 0; idx < entries; idx++) {
 
-                Bitboard occ = static_cast<Bitboard>(util::pdep(j, data.block));
+                Bitboard occ = static_cast<Bitboard>(util::pdep(idx, data.block));
+                Bitboard attacks = generateRookRays(static_cast<Square>(sq));
 
-                Bitboard attacks{};
-
-                for (auto dir : RookDirs) attacks |= generateRookRays(static_cast<Square>(i));
-
-                tab[j + data.offset] = static_cast<u16>(util::pext(attacks, occ));
+                table[idx + data.offset] = static_cast<u16>(util::pext(attacks, occ));
             }
         }
 
-        return tab;
+        return table;
     }
 
-    std::array<Bitboard, BishopData.tableSize> generateBishopAttacks() {
+    std::array<Bitboard, BishopData.size> generateBishopAttacks() {
 
-        std::array<Bitboard, BishopData.tableSize> tab{};
+        std::array<Bitboard, BishopData.size> table{};
 
-        for (u32 i = 0; i < 64; i++) {
+        for (int sq = 0; sq < 64; sq++) {
 
-            Square sq = static_cast<Square>(i);
-            auto& data = BishopData.data[i];
-            u32 entries = util::popcount(data.block);
+            auto& data = BishopData.data[sq];
+            u32 entries = 1 << util::popcount(data.block);
 
-            for (u32 j = 0; j < entries; j++) {
+            for (int idx = 0; idx < entries; idx++) {
 
-                Bitboard occ = util::pdep(i, data.block);
-
-                Bitboard attacks{};
-
-                for (auto dir : RookDirs) attacks |= generateBishopRays(static_cast<Square>(i));
-
-                tab[j + data.offset] = static_cast<u64>(util::pext(attacks, occ));
+                Bitboard occ = util::pdep(idx, data.block);
+                table[idx + data.offset] = generateBishopRays(static_cast<Square>(sq));
             }
 
         }
 
-        return tab;
+        return table;
     }
 }
