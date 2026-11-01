@@ -16,7 +16,7 @@ int main() {
     occ |= Bitboard(1ULL << static_cast<int>(Square::f4));
 
 
-    util::printBitboard(attacks::genOccRookRays(Square::e4, occ));
+    util::printBitboard(attacks::genOccupancyRookRays(Square::e4, occ));
     occ &= 0;
 
     occ |= Bitboard(1ULL << static_cast<int>(Square::f5));
@@ -25,5 +25,8 @@ int main() {
     occ |= Bitboard(1ULL << static_cast<int>(Square::h1));
 
 
-    util::printBitboard(attacks::genOccBishopRays(Square::e4, occ));
+    util::printBitboard(attacks::genOccupancyBishopRays(Square::e4, occ));
+
+    
+    util::printBitboard(Bitboard(770));
 }

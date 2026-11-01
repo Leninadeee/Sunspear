@@ -1,24 +1,33 @@
 #ifndef BITS_H
 #define BITS_H
 
+#include <immintrin.h>
+
 #include "../types.h"
 
 namespace util {
 
-    static inline int popcnt(u64 u) {
+    constexpr int popcount(u64 u) {
         return __builtin_popcountll(u);
     }
 
-    /* Return the offset of the least significant set bit */
-    static inline int lsb(u64 u) {
+    constexpr int lsb(u64 u) {
         if (!u) return -1;
         return __builtin_ctzll(u);
     }
 
-    static inline int poplsb(u64* u) {
-        int i = lsb(*u);
-        *u &= *u - 1;
+    constexpr int poplsb(u64& u) {
+        int i = lsb(u);
+        u &= u - 1;
         return i;
+    }
+
+    constexpr int pext(u64 v, u64 mask) {
+        return _pext_u64(v, mask);
+    } 
+
+    constexpr int pdep(u64 v, u64 mask) {
+        return _pdep_u64(v, mask);
     }
 }
 

@@ -12,7 +12,10 @@ namespace attacks {
     constexpr u64 NotH  = 0x7F7F7F7F7F7F7F7FULL;  // Not in file H
     constexpr u64 NotGH = 0x3F3F3F3F3F3F3F3FULL;  // Not in file G and H
 
-    constexpr Bitboard genPawnAttackSingular(Square sq, Color c) {
+    constexpr auto RookDirs = {offsets::Up, offsets::Down, offsets::Left, offsets::Right};
+    constexpr auto BishopDirs = {offsets::UpLeft, offsets::UpRight, offsets::DownLeft, offsets::DownRight};
+
+    constexpr Bitboard generatePawnAttack(Square sq, Color c) {
         
         Bitboard singular = Bitboard::point(sq);
         Bitboard white, black, mask;
@@ -26,7 +29,7 @@ namespace attacks {
         return (white & ~mask) | (black & mask);      
     }
 
-    constexpr Bitboard genKnightAttackSingular(Square sq) {
+    constexpr Bitboard generateKnightAttack(Square sq) {
 
         Bitboard res(0);
         Bitboard singular = Bitboard::point(sq);
@@ -46,7 +49,7 @@ namespace attacks {
         return res;
     }
 
-    constexpr Bitboard genKingAttackSingular(Square sq) {
+    constexpr Bitboard generateKingAttack(Square sq) {
 
         Bitboard res(0);
         Bitboard singular = Bitboard::point(sq);
@@ -65,46 +68,119 @@ namespace attacks {
         return res;
     }
 
-    constexpr Bitboard genBishopRays(Square sq) {
+    constexpr Bitboard generateBishopRays(Square sq) {
         
         Bitboard fill{};
 
-        for (auto dir : {offsets::UpLeft, offsets::UpRight, offsets::DownLeft, offsets::DownRight})
-            fill |= Bitboard::emptyFillRay(sq, dir);
+        for (auto dir : BishopDirs)
+            fill |= Bitboard::fillRay(sq, dir);
 
         return fill;
     }
 
-     constexpr Bitboard genRookRays(Square sq) {
+     constexpr Bitboard generateRookRays(Square sq) {
         
         Bitboard fill{};
 
-        for (auto dir : {offsets::Up, offsets::Down, offsets::Left, offsets::Right})
-            fill |= Bitboard::emptyFillRay(sq, dir);
+        for (auto dir : RookDirs)
+            fill |= Bitboard::fillRay(sq, dir);
 
         return fill;
     }
 
-    constexpr Bitboard genOccBishopRays(Square sq, Bitboard occ) {
+    constexpr Bitboard generateOccupancyBishopRays(Square sq, Bitboard occ) {
         
         Bitboard fill{};
 
-        for (auto dir : {offsets::UpLeft, offsets::UpRight, offsets::DownLeft, offsets::DownRight})
-            fill |= Bitboard::occFillRay(sq, dir, occ);
+        for (auto dir : BishopDirs)
+            fill |= Bitboard::fillRay(sq, dir, occ);
 
         return fill;
     }
 
-     constexpr Bitboard genOccRookRays(Square sq, Bitboard occ) {
+     constexpr Bitboard generateOccupancyRookRays(Square sq, Bitboard occ) {
         
         Bitboard fill{};
 
-        for (auto dir : {offsets::Up, offsets::Down, offsets::Left, offsets::Right})
-            fill |= Bitboard::occFillRay(sq, dir, occ);
+        for (auto dir : RookDirs)
+            fill |= Bitboard::fillRay(sq, dir, occ);
 
         return fill;
     }
 
+    constexpr std::array<Bitboard, 64> generatePawnAttackTable(Color c) {
+
+        std::array<Bitboard, 64> Ptable{};
+
+        for (size_t i = 0; i < Ptable.size(); i++) {
+            Ptable[i] = generatePawnAttack(static_cast<Square>(i), c);
+        }
+
+        return Ptable;
+    }
+
+    constexpr std::array<Bitboard, 64> generateKnightAttackTable() {
+
+        std::array<Bitboard, 64> Kntable{};
+
+        for (size_t i = 0; i < Kntable.size(); i++) {
+            Kntable[i] = generateKnightAttack(static_cast<Square>(i));
+        }
+
+        return Kntable;
+    }
+
+    constexpr std::array<Bitboard, 64> generateKingAttackTable() {
+
+        std::array<Bitboard, 64> Ktable{};
+
+        for (size_t i = 0; i < Ktable.size(); i++) {
+            Ktable[i] = generateKingAttack(static_cast<Square>(i));
+        }
+
+        return Ktable;
+    }
+
+    auto constexpr WhitePawnAttacks = generatePawnAttackTable(Color::White);
+    auto constexpr BlackPawnAttacks = generatePawnAttackTable(Color::Black);
+    auto constexpr KnightAttacks = generateKnightAttackTable();
+    auto constexpr KingAttacks   = generateKingAttackTable();
+
+    struct RookDataEntry {
+        Bitboard block; // all possible blocker bits set
+        Bitboard rays;  // all possible dest bits set
+        u32 offset;
+    };
+
+    struct RookData_ {
+        std::array<RookDataEntry, 64> data;
+        u32 tableSize;
+    };
+
+    constexpr struct RookData_ generateRookData() {
+
+        RookData_ tab{};
+
+        for (u32 i = 0; i < 64; i++) {
+
+            Square sq = static_cast<Square>(i);
+
+            for (auto dir : {offsets::Up, offsets::Down, offsets::Left, offsets::Right}) {
+
+                tab.data[i].block |= Bitboard::fillRay(sq, dir) & ~Bitboard::border(dir);
+                tab.data[i].rays  |= Bitboard::fillRay(sq, dir);
+            }
+
+            tab.data[i].offset = tab.tableSize;
+            tab.tableSize += 1 << util::popcount(tab.data[i].block);
+        }
+
+        return tab;
+    }
+
+    constexpr auto RookData = generateRookData();
+
+    
     //extern Bitboard occFillBishopRays(Square sq);
     //extern Bitboard occFillRookRays(Square sq);
 

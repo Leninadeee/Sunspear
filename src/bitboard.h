@@ -55,6 +55,13 @@ namespace boards {
 		constexpr u64 FileG{0x4040404040404040ULL};
 		constexpr u64 FileH{0x8080808080808080ULL};
 
+        constexpr u64 Fill {0xFFFFFFFFFFFFFFFFULL};
+
+        constexpr u64 NotA  = Fill ^ FileA;
+        constexpr u64 NotH  = Fill ^ FileH;
+        constexpr u64 NotAB = Fill ^ (FileA | FileB);
+        constexpr u64 NotGH = Fill ^ (FileH | FileG);
+
 }
 
 class Bitboard {
@@ -79,23 +86,25 @@ class Bitboard {
 
         constexpr Bitboard operator~() const { return ~m_board; }
 
-        constexpr Bitboard operator<<(int rhs) const { return m_board << rhs; }
-        constexpr Bitboard operator>>(int rhs) const { return m_board >> rhs; }
+        constexpr Bitboard operator<<(u32 rhs) const { return m_board << rhs; }
+        constexpr Bitboard operator>>(u32 rhs) const { return m_board >> rhs; }
 
-        constexpr Bitboard& operator<<=(int rhs) { m_board <<= rhs; return *this; }
-        constexpr Bitboard& operator>>=(int rhs) { m_board >>= rhs; return *this;}
+        constexpr Bitboard& operator<<=(u32 rhs) { m_board <<= rhs; return *this; }
+        constexpr Bitboard& operator>>=(u32 rhs) { m_board >>= rhs; return *this;}
 
         constexpr bool operator[](Square s) const { return m_board & (1ULL << static_cast<int>(s)); }
 
+        constexpr operator auto() const { return m_board; }
         constexpr explicit operator bool() const { return m_board != 0; }
+
         constexpr bool isEmpty() const { return m_board == 0; }
 
-        //constexpr int popcnt() const { return util::popcnt(m_board); }
+        constexpr int popcount() const { return util::popcount(m_board); }
         //constexpr int lsb() const { return util::lsb(m_board); }
         constexpr static Bitboard point(Square sq) { return (1ULL << static_cast<int>(sq)); }
 
-        constexpr static Bitboard border(int dir)
-		{
+        constexpr static Bitboard border(int dir) {
+
 			switch (dir) {
                 case offsets::Up:        return boards::Rank8;
                 case offsets::Down:      return boards::Rank1;
@@ -109,21 +118,7 @@ class Bitboard {
 			}
 		}
 
-        /*constexpr static Bitboard occConfig(int idx, int nbits, Bitboard mask) {
-    
-            Bitboard occ{};
-
-            for (int i = 0; i < nbits; i++) {
-                int offset = mask.lsb();
-                clrbit(mask, offset);
-
-                if (idx & (1ULL << i)) occ |= (1ULL << offset);
-            }
-
-            return occ;
-        }*/
-
-        constexpr static Bitboard occFillRay(Square src, int dir, Bitboard occ) {
+        constexpr static Bitboard fillRay(Square src, int dir, Bitboard occ = 0) {
 
             Bitboard ray{};
 
@@ -142,9 +137,9 @@ class Bitboard {
             return ray;
         }
 
-        constexpr static Bitboard emptyFillRay(Square src, int dir) {
-            return occFillRay(src, dir, 0);
-        }
+        //constexpr static Bitboard fillRay(Square src, int dir) {
+        //    return fillRay(src, dir, 0);
+        //}
 
     private:
         u64 m_board;

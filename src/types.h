@@ -27,7 +27,7 @@ enum class Square : u8 {
 
 enum class Color : u8 {
 
-    WHITE, BLACK, NONE
+    White, Black, None
 
 };
 
