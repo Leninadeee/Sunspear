@@ -86,11 +86,11 @@ class Bitboard {
 
         constexpr Bitboard operator~() const { return ~m_board; }
 
-        constexpr Bitboard operator<<(u32 rhs) const { return m_board << rhs; }
-        constexpr Bitboard operator>>(u32 rhs) const { return m_board >> rhs; }
+        constexpr Bitboard operator<<(int rhs) const { return m_board << rhs; }
+        constexpr Bitboard operator>>(int rhs) const { return m_board >> rhs; }
 
-        constexpr Bitboard& operator<<=(u32 rhs) { m_board <<= rhs; return *this; }
-        constexpr Bitboard& operator>>=(u32 rhs) { m_board >>= rhs; return *this;}
+        constexpr Bitboard& operator<<=(int rhs) { m_board <<= rhs; return *this; }
+        constexpr Bitboard& operator>>=(int rhs) { m_board >>= rhs; return *this;}
 
         constexpr bool operator[](Square s) const { return m_board & (1ULL << static_cast<int>(s)); }
 

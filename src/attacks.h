@@ -157,6 +157,16 @@ namespace attacks {
         u32 tableSize;
     };
 
+    struct BishopDataEntry {
+        Bitboard block;
+        u32 offset;
+    };
+
+    struct BishopData_ {
+        std::array<BishopDataEntry, 64> data;
+        u32 tableSize;
+    };
+
     constexpr struct RookData_ generateRookData() {
 
         RookData_ tab{};
@@ -178,11 +188,33 @@ namespace attacks {
         return tab;
     }
 
-    constexpr auto RookData = generateRookData();
+    constexpr struct BishopData_ generateBishopData() {
 
-    
-    //extern Bitboard occFillBishopRays(Square sq);
-    //extern Bitboard occFillRookRays(Square sq);
+        BishopData_ tab{};
+
+        for (u32 i = 0; i < 64; i++) {
+
+            Square sq = static_cast<Square>(i);
+
+            for (auto dir : BishopDirs) {
+                tab.data[i].block |= (Bitboard::fillRay(sq, dir) & ~Bitboard::border(dir));
+            }
+
+            tab.data[i].offset = tab.tableSize;
+            tab.tableSize += 1 << util::popcount(tab.data[i].block);
+        }
+
+        return tab;
+    }
+
+    constexpr auto RookData = generateRookData();
+    constexpr auto BishopData = generateBishopData();
+
+    extern std::array<u16, RookData.tableSize> getRookAttacks();
+    extern std::array<Bitboard, BishopData.tableSize> getBishopAttacks();
+
+    const std::array<u16, RookData.tableSize> RookAttacks = getRookAttacks();
+    const std::array<Bitboard, BishopData.tableSize> BishopAttacks = getBishopAttacks();
 
 };
 
