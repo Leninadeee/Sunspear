@@ -146,6 +146,22 @@ namespace attacks {
     auto constexpr KnightAttacks = generateKnightAttackTable();
     auto constexpr KingAttacks   = generateKingAttackTable();
 
+    template<Color C>
+    constexpr Bitboard getPawnAttack(Square src) {
+        if constexpr(C == Color::White)
+            return WhitePawnAttacks[src];
+        else:
+            return BlackPawnAttacks[src];
+    }
+
+    constexpr Bitboard getKnightAttack(Square src) {
+        return KnightAttacks[static_cast<int>(src)];
+    }
+
+    constexpr Bitboard getKingAttack(Square src) {
+        return KingAttacks[static_cast<int>(src)];
+    }
+
     #if 1 // save for magics
     struct RookDataEntry {
         Bitboard blocker; // all possible blocker bits set
