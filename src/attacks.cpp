@@ -47,7 +47,7 @@ namespace attacks {
 
                 for (auto dir : RookDirs) attacks |= generateBishopRays(static_cast<Square>(i));
 
-                BishopAttacks[j + data.offset] = static_cast<u16>(util::pext(attacks, occ));
+                tab[j + data.offset] = static_cast<u64>(util::pext(attacks, occ));
             }
 
         }
