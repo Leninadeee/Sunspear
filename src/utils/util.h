@@ -12,4 +12,8 @@ constexpr int squareFile(Square sq) noexcept {
     return static_cast<int>(sq) & 7;
 }
 
+constexpr Color operator~(Color c) noexcept {
+    return static_cast<Color>(static_cast<u8>(c) ^ 1);
+}
+
 #endif
