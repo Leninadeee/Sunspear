@@ -251,7 +251,7 @@ namespace attacks {
 
     #endif
     
-    #if 0 // save for later
+#if 0 // save for later
     struct RookDataEntry {
         Bitboard blocker; // all possible blocker bits set
         Bitboard rays;  // all possible dest bits set
@@ -278,7 +278,7 @@ namespace attacks {
     extern std::array<u16, RookData.size> generateRookAttacks();
     const std::array<u16, RookData.size> RookAttacks = generateRookAttacks();
 
-    #endif
+#endif
 
 };
 
