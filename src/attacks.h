@@ -149,9 +149,9 @@ namespace attacks {
     template<Color C>
     constexpr Bitboard getPawnAttack(Square src) {
         if constexpr(C == Color::White)
-            return WhitePawnAttacks[src];
-        else:
-            return BlackPawnAttacks[src];
+            return WhitePawnAttacks[static_cast<int>(src)];
+        else
+            return BlackPawnAttacks[static_cast<int>(src)];
     }
 
     constexpr Bitboard getKnightAttack(Square src) {
