@@ -3,50 +3,9 @@
 #include <array>
 #include <string>
 
-#include "attacks.h"
-#include "bitboard.h"
+#include "core.h"
 #include "move.h"
 #include "types.h"
-
-enum class PieceType : u8 {
-    Pawn,
-    Knight,
-    Bishop ,
-    Rook,
-    Queen,
-    King,
-    None
-};
-
-enum class Piece : u8 {
-    WhitePawn,
-    WhiteKnight,
-    WhiteBishop,
-    WhiteRook,
-    WhiteQueen,
-    WhiteKing,
-
-    BlackPawn,
-    BlackKnight,
-    BlackBishop,
-    BlackRook,
-    BlackQueen,
-    BlackKing,
-
-    None
-};
-
-namespace Castling {
-    constexpr u8 None     = 0;
-    constexpr u8 WhiteOO  = 1 << 0;
-    constexpr u8 WhiteOOO = 1 << 1;
-    constexpr u8 BlackOO  = 1 << 2;
-    constexpr u8 BlackOOO = 1 << 3;
-
-    constexpr u8 WhiteAll = WhiteOO  | WhiteOOO;
-    constexpr u8 BlackAll = BlackOO  | BlackOOO;
-    constexpr u8 All      = WhiteAll | BlackAll;
-}
 
 class Position {
 public:
@@ -56,10 +15,6 @@ public:
 
     bool setFen(std::string& fen);
     std::string toFen() const;
-
-    constexpr Piece makePiece(Color c, PieceType pt) const {
-        return static_cast<Piece>(static_cast<u8>(c) * 6 + static_cast<u8>(pt));
-    }
 
     constexpr Bitboard pieces(Piece p) const {
         return m_pieces[static_cast<int>(p)];

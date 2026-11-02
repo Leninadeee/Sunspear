@@ -1,9 +1,9 @@
-#ifndef ATTACKS_H
-#define ATTACKS_H
+#pragma once
 
 #include <array>
 
 #include "bitboard.h"
+#include "core.h"
 
 namespace attacks {
 
@@ -251,10 +251,10 @@ namespace attacks {
 
     #endif
     
-#if 0 // save for later
+#if 0
     struct RookDataEntry {
-        Bitboard blocker; // all possible blocker bits set
-        Bitboard rays;  // all possible dest bits set
+        Bitboard blocker;
+        Bitboard rays;
         u32 offset;
     };
 
@@ -281,5 +281,3 @@ namespace attacks {
 #endif
 
 };
-
-#endif

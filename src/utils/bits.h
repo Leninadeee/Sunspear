@@ -1,5 +1,4 @@
-#ifndef BITS_H
-#define BITS_H
+#pragma once
 
 #include <immintrin.h>
 #include <type_traits>
@@ -59,5 +58,3 @@ namespace util {
         }
     }
 }
-
-#endif

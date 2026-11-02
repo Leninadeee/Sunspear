@@ -1,8 +1,8 @@
-#ifndef BITBOARD_H
-#define BITBOARD_H
+#pragma once
 
-#include "utils/bits.h"
+#include "core.h"
 #include "types.h"
+#include "utils/bits.h"
 
 namespace offsets {
 
@@ -140,5 +140,3 @@ class Bitboard {
     private:
         u64 m_board;
 };
-
-#endif
