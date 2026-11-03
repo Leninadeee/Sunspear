@@ -3,6 +3,7 @@
 #include <array>
 #include <string>
 
+#include "bitboard.h"
 #include "core.h"
 #include "move.h"
 #include "types.h"
@@ -11,9 +12,9 @@ class Position {
 public:
 
     Position() = default;
-    explicit Position(std::string& fen);
+    explicit Position(std::string& fen) { setFen(fen); };
 
-    bool setFen(std::string& fen);
+    bool setFen(const std::string& fen);
     std::string toFen() const;
 
     constexpr Bitboard pieces(Piece p) const {
@@ -34,6 +35,10 @@ public:
 
     constexpr Piece pieceAt(Square sq) const {
         return m_board[static_cast<int>(sq)];
+    }
+
+    constexpr Piece pieceAt(int rank, int file) const {
+        return m_board[static_cast<int>(makeSquare(rank, file))];
     }
 
     constexpr Color side() const { return m_side; }

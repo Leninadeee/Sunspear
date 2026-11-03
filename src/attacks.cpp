@@ -45,8 +45,7 @@ namespace attacks {
         return table;
     }
 
-    #if 0 // save for later
-    // approx 800kb->200kb compressed table, unnecessary for modern CPUs
+#if 0
     std::array<u16, RookData.size> generateRookAttacks() {
 
         std::array<u16, RookData.size> table;
@@ -67,5 +66,5 @@ namespace attacks {
 
         return table;
     }
-    #endif
+#endif
 }

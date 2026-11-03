@@ -2,8 +2,7 @@
 #pragma once
 
 #include "types.h"
-#include "position.h"
-#include "util.h"
+#include "core.h"
 
 enum class MoveFlag : u8 {
     Quiet               = 0,

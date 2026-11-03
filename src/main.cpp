@@ -2,33 +2,16 @@
 
 #include "attacks.h"
 #include "bitboard.h"
+#include "position.h"
 #include "types.h"
 #include "utils/util.h"
 
 int main() {
 
-    Bitboard a(1ULL << static_cast<int>(Square::a5));
+    std::string a("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ");
 
-    Bitboard occ{};
-    occ |= Bitboard(1ULL << static_cast<int>(Square::e2));
-    occ |= Bitboard(1ULL << static_cast<int>(Square::e7));
-    occ |= Bitboard(1ULL << static_cast<int>(Square::a4));
-    occ |= Bitboard(1ULL << static_cast<int>(Square::f4));
+    Position po(a);
+    util::prettyBoard(po);
 
-
-    //util::printBitboard(attacks::generateOccupancyRookRays(Square::e4, occ));
-    occ &= 0;
-
-    occ |= Bitboard(1ULL << static_cast<int>(Square::f5));
-    occ |= Bitboard(1ULL << static_cast<int>(Square::c2));
-    occ |= Bitboard(1ULL << static_cast<int>(Square::b7));
-    occ |= Bitboard(1ULL << static_cast<int>(Square::h1));
-
-
-    //util::printBitboard(attacks::generateOccupancyBishopRays(Square::a1, occ));
-
-    
-    //util::printBitboard(Bitboard(770));
-
-    util::printBitboard(attacks::RookAttacks[1000]);
+    std::cout << po.toFen();
 }

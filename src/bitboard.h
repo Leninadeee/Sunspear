@@ -81,8 +81,11 @@ class Bitboard {
 
         constexpr Bitboard& operator&=(u64 rhs) { m_board &= rhs; return *this; }
         constexpr Bitboard& operator|=(u64 rhs) { m_board |= rhs; return *this; }
+        constexpr Bitboard& operator^=(u64 rhs) { m_board ^= rhs; return *this; }
 
+        constexpr Bitboard& operator&=(Bitboard rhs) { m_board &= rhs.m_board; return *this; }
         constexpr Bitboard& operator|=(Bitboard rhs) { m_board |= rhs.m_board; return *this; }
+        constexpr Bitboard& operator^=(Bitboard rhs) { m_board ^= rhs.m_board; return *this; }
 
         constexpr Bitboard operator~() const { return ~m_board; }
 

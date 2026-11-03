@@ -25,6 +25,10 @@ constexpr int squareFile(Square sq) {
     return static_cast<int>(sq) & 7;
 }
 
+constexpr Square makeSquare(int rank, int file) {
+    return static_cast<Square>((rank << 3) | file);
+}
+
 enum class Color : u8 {
     White,
     Black,
@@ -65,6 +69,14 @@ enum class Piece : u8 {
 
 constexpr Piece makePiece(Color c, PieceType pt) {
     return static_cast<Piece>(static_cast<u8>(c) * 6 + static_cast<u8>(pt));
+}
+
+constexpr PieceType pieceType(Piece p) {
+    return (p == Piece::None) ? PieceType::None : static_cast<PieceType>(static_cast<u8>(p) % 6);
+}
+
+constexpr Color pieceColor(Piece p) {
+    return (p == Piece::None) ? Color::None : static_cast<Color>(static_cast<u8>(p) / 6);
 }
 
 namespace Castling {

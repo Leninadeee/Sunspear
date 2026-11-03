@@ -162,7 +162,7 @@ namespace attacks {
         return KingAttacks[static_cast<int>(src)];
     }
 
-    #if 1 // save for magics
+#if 1 // save for magics
     struct RookDataEntry {
         Bitboard blocker; // all possible blocker bits set
         u32 offset;
