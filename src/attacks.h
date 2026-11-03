@@ -231,20 +231,20 @@ namespace attacks {
 
     inline Bitboard getRookAttacks(Square src, Bitboard occ) {
 
-		const auto s = static_cast<i32>(src);
+		const int s = static_cast<int>(src);
 
 		const auto &data = RookData.data[s];
-		const auto idx = util::pext(occ, data.blocker);
+		const u64 idx = util::pext(occ, data.blocker);
 
 		return RookAttacks[data.offset + idx];
 	}
 
 	inline Bitboard getBishopAttacks(Square src, Bitboard occ) {
 
-		const auto s = static_cast<i32>(src);
+		const int s = static_cast<int>(src);
 
 		const auto &data = BishopData.data[s];
-		const auto idx = util::pext(occ, data.blocker);
+		const u64 idx = util::pext(occ, data.blocker);
 
 		return BishopAttacks[data.offset + idx];
 	}
